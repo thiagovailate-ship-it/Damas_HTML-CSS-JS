@@ -1,0 +1,2515 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <!-- Codificação UTF-8 obrigatória para renderizar perfeitamente o alfabeto cirílico e acentos tônicos (\u0301) -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Evita bloqueio de cabeçalho Referer ao carregar o áudio TTS gratuito online em qualquer hospedagem -->
+  <meta name="referrer" content="no-referrer">
+  <title>SlovoFlow — Estudo de Russo com SM-2 e TTS</title>
+
+  <!-- Combinação tipográfica editorial com suporte nativo completo ao Cirílico:
+       PT Serif (criada na Rússia pela ParaType) + Inter (UI) + IBM Plex Mono (métricas e fonética) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&family=PT+Serif:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS com paleta autoral inspirada em papel editorial, vermelhão russo (киноварь) e grafite -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+            serif: ['"PT Serif"', 'Georgia', 'serif'],
+            mono: ['"IBM Plex Mono"', 'ui-monospace', 'monospace'],
+          },
+          colors: {
+            paper: {
+              50: '#FCFBF8',
+              100: '#F4F1EA',
+              200: '#ECE7DC',
+              300: '#DDD6C8',
+              400: '#BFB6A6',
+            },
+            ink: {
+              950: '#141311',
+              900: '#1C1B18',
+              800: '#25231F',
+              700: '#34312B',
+              500: '#6B6459',
+              400: '#9B9488',
+              100: '#F2EFE9',
+            },
+            vermilion: {
+              600: '#B83028',
+              700: '#9A251E',
+              400: '#DF554D',
+            },
+            prussian: {
+              700: '#26466D',
+              400: '#6E95C2',
+            },
+            pine: {
+              700: '#246B48',
+              400: '#4FA97A',
+            },
+            ochre: {
+              700: '#9A6213',
+              400: '#D99B38',
+            }
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- Estilos complementares para física 3D da ficha, modais <dialog>, <progress>, <meter> e ondas de fala -->
+  <style>
+    /* Textura sutil de papel apenas no fundo principal */
+    body {
+      background-image: radial-gradient(rgba(25, 24, 22, 0.035) 1px, transparent 0);
+      background-size: 24px 24px;
+    }
+    html.dark body {
+      background-image: radial-gradient(rgba(242, 239, 233, 0.03) 1px, transparent 0);
+    }
+
+    /* Perspectiva 3D realista para virada da ficha de estudo */
+    .perspective-card {
+      perspective: 1400px;
+    }
+
+    .card-3d-inner {
+      position: relative;
+      width: 100%;
+      transition: transform 0.52s cubic-bezier(0.22, 1, 0.36, 1);
+      transform-style: preserve-3d;
+    }
+
+    .card-3d-inner.is-flipped {
+      transform: rotateY(180deg);
+    }
+
+    .card-face {
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+    }
+
+    .card-face-back {
+      transform: rotateY(180deg);
+    }
+
+    /* Sombra física de ficha em papel sobre a mesa */
+    .index-card-shadow {
+      box-shadow:
+        0 1px 2px rgba(25, 24, 22, 0.05),
+        0 12px 28px -8px rgba(25, 24, 22, 0.09);
+    }
+    html.dark .index-card-shadow {
+      box-shadow:
+        0 1px 2px rgba(0, 0, 0, 0.35),
+        0 16px 32px -10px rgba(0, 0, 0, 0.55);
+    }
+
+    /* Respeita preferência de acessibilidade para movimento reduzido */
+    @media (prefers-reduced-motion: reduce) {
+      .card-3d-inner { transition: none; }
+      .wave-bar { animation: none !important; }
+    }
+
+    /* Backdrop limpo e discreto para o elemento nativo <dialog> */
+    dialog::backdrop {
+      background: rgba(20, 19, 17, 0.58);
+      backdrop-filter: blur(3px);
+      -webkit-backdrop-filter: blur(3px);
+    }
+
+    dialog[open] {
+      animation: dialogReveal 0.18s ease-out;
+    }
+
+    @keyframes dialogReveal {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Animação minimalista das barras de áudio durante a síntese de voz */
+    @keyframes soundWave {
+      0%, 100% { transform: scaleY(0.35); }
+      50% { transform: scaleY(1); }
+    }
+
+    .speaking .wave-bar {
+      animation: soundWave 0.6s ease-in-out infinite;
+    }
+    .speaking .wave-bar:nth-child(2) { animation-delay: 0.14s; }
+    .speaking .wave-bar:nth-child(3) { animation-delay: 0.28s; }
+
+    /* Estilização editorial para a tag nativa <progress> */
+    progress {
+      appearance: none;
+      -webkit-appearance: none;
+      overflow: hidden;
+    }
+    progress::-webkit-progress-bar {
+      background-color: #E3DDD2;
+      border-radius: 2px;
+    }
+    html.dark progress::-webkit-progress-bar {
+      background-color: #2B2823;
+    }
+    progress::-webkit-progress-value {
+      background-color: #B83028;
+      transition: width 0.35s ease;
+    }
+    html.dark progress::-webkit-progress-value {
+      background-color: #DF554D;
+    }
+    progress::-moz-progress-bar {
+      background-color: #B83028;
+    }
+    html.dark progress::-moz-progress-bar {
+      background-color: #DF554D;
+    }
+
+    /* Estilização editorial para a tag nativa <meter> */
+    meter {
+      appearance: none;
+      -webkit-appearance: none;
+      overflow: hidden;
+      border-radius: 2px;
+      background: #E3DDD2;
+    }
+    html.dark meter {
+      background: #2B2823;
+    }
+    meter::-webkit-meter-bar {
+      background: #E3DDD2;
+      border: none;
+    }
+    html.dark meter::-webkit-meter-bar {
+      background: #2B2823;
+    }
+    meter::-webkit-meter-optimum-value { background: #246B48; }
+    meter::-webkit-meter-suboptimum-value { background: #9A6213; }
+    meter::-webkit-meter-even-less-good-value { background: #B83028; }
+    html.dark meter::-webkit-meter-optimum-value { background: #4FA97A; }
+    html.dark meter::-webkit-meter-suboptimum-value { background: #D99B38; }
+    html.dark meter::-webkit-meter-even-less-good-value { background: #DF554D; }
+
+    /* Remove marcador padrão de <summary> para alinhamento fino */
+    summary::-webkit-details-marker { display: none; }
+  </style>
+</head>
+
+<body class="min-h-screen bg-paper-100 text-ink-950 dark:bg-ink-950 dark:text-ink-100 font-sans antialiased selection:bg-vermilion-600/20 transition-colors duration-200 flex flex-col">
+
+  <!-- =====================================================================
+       CABECALHO SEMANTICO (<header>) + NAVEGACAO EDITORIAL (<nav>)
+       ===================================================================== -->
+  <header class="sticky top-0 z-30 border-b border-paper-300 dark:border-ink-700 bg-paper-100/95 dark:bg-ink-950/95 backdrop-blur-sm">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+
+      <!-- Marca tipográfica inspirada em selo editorial russo -->
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-md bg-vermilion-600 dark:bg-vermilion-400 text-paper-50 dark:text-ink-950 flex items-center justify-center font-serif font-bold text-lg select-none" aria-hidden="true">
+          <span lang="ru">С</span>
+        </div>
+        <div class="flex items-baseline gap-2.5">
+          <h1 class="font-serif text-xl font-bold tracking-tight leading-none">SlovoFlow</h1>
+          <span class="hidden sm:inline font-mono text-[11px] text-ink-500 dark:text-ink-400 tracking-wide">RU — PT</span>
+        </div>
+      </div>
+
+      <!-- Navegação principal limpa e sem poluição visual -->
+      <nav aria-label="Navegação principal" class="flex items-center gap-1 sm:gap-2">
+        <button id="btnOpenAlphabet" type="button"
+          class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-ink-950 dark:text-ink-100 hover:bg-paper-200 dark:hover:bg-ink-800 transition cursor-pointer">
+          <span class="font-serif font-bold text-vermilion-600 dark:text-vermilion-400" lang="ru">А–Я</span>
+          <span class="hidden xs:inline">Alfabeto</span>
+        </button>
+
+        <button id="btnOpenManage" type="button"
+          class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-ink-950 dark:text-ink-100 hover:bg-paper-200 dark:hover:bg-ink-800 transition cursor-pointer">
+          <span>Acervo</span>
+        </button>
+
+        <button id="btnOpenNewCard" type="button"
+          class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium bg-ink-950 hover:bg-ink-800 dark:bg-paper-100 dark:hover:bg-paper-200 text-paper-50 dark:text-ink-950 transition cursor-pointer">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14m7-7H5"/>
+          </svg>
+          <span>Nova ficha</span>
+        </button>
+
+        <span class="w-px h-5 bg-paper-300 dark:bg-ink-700 mx-0.5 hidden sm:inline-block" aria-hidden="true"></span>
+
+        <button id="btnOpenSettings" type="button" aria-label="Configurações de voz e backup" title="Configurações"
+          class="p-2 rounded-lg text-ink-500 hover:text-ink-950 dark:text-ink-400 dark:hover:text-ink-100 hover:bg-paper-200 dark:hover:bg-ink-800 transition cursor-pointer">
+          <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+        </button>
+
+        <button id="btnToggleTheme" type="button" aria-label="Alternar modo papel e modo grafite" aria-pressed="false" title="Alternar tema"
+          class="p-2 rounded-lg text-ink-500 hover:text-ink-950 dark:text-ink-400 dark:hover:text-ink-100 hover:bg-paper-200 dark:hover:bg-ink-800 transition cursor-pointer">
+          <svg id="iconSun" class="w-[18px] h-[18px] hidden" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="4"/>
+            <path stroke-linecap="round" d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32l1.41-1.41"/>
+          </svg>
+          <svg id="iconMoon" class="w-[18px] h-[18px]" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+          </svg>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Aviso discreto caso o navegador não tenha voz russa local E esteja sem conexão para o fallback online -->
+  <div id="ttsWarningBanner" class="hidden border-b border-ochre-700/25 bg-ochre-700/10 dark:bg-ochre-400/10 px-4 py-2 text-xs text-ochre-700 dark:text-ochre-400" role="alert">
+    <div class="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-2">
+      <p>
+        <strong>Sem voz russa local (<code class="font-mono">ru-RU</code>) e sem acesso ao TTS online:</strong> conecte-se à internet ou abra no <strong>Microsoft Edge</strong> para pronúncia nativa.
+      </p>
+      <button id="btnDismissTtsBanner" type="button" class="underline font-medium cursor-pointer">Ocultar</button>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       CONTEUDO PRINCIPAL (<main>): TRILHO EDITORIAL LATERAL + MESA DE ESTUDO
+       ===================================================================== -->
+  <main class="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-7 sm:py-10 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start">
+
+    <!-- ===================================================================
+         COLUNA LATERAL (<aside>): INDICE DE CADERNOS, META E OPCOES
+         =================================================================== -->
+    <aside aria-label="Cadernos de estudo e preferências" class="lg:col-span-4 xl:col-span-3 space-y-7 order-2 lg:order-1 lg:pr-6 lg:border-r border-paper-300 dark:border-ink-700">
+
+      <!-- Seção 1: Cadernos (Baralhos) com tag nativa <meter> -->
+      <section aria-labelledby="headingDecks" class="space-y-3">
+        <div class="flex items-baseline justify-between">
+          <h2 id="headingDecks" class="font-mono text-[11px] font-semibold uppercase tracking-widest text-ink-500 dark:text-ink-400">
+            Cadernos
+          </h2>
+          <span id="totalCardsBadge" class="font-mono text-[11px] text-ink-500 dark:text-ink-400">24 fichas</span>
+        </div>
+
+        <!-- Lista renderizada dinamicamente com índice numérico e <meter> de domínio -->
+        <div id="deckList" class="space-y-1" role="list"></div>
+      </section>
+
+      <!-- Seção 2: Meta Diária com tag nativa <progress> -->
+      <section aria-labelledby="headingDailyGoal" class="pt-6 border-t border-paper-300 dark:border-ink-700 space-y-2.5">
+        <div class="flex items-baseline justify-between">
+          <h2 id="headingDailyGoal" class="font-mono text-[11px] font-semibold uppercase tracking-widest text-ink-500 dark:text-ink-400">
+            Ritmo diário
+          </h2>
+          <span class="font-mono text-[11px] text-ink-500 dark:text-ink-400">
+            Sequência: <strong id="streakCount" class="text-ink-950 dark:text-ink-100">1</strong>d
+          </span>
+        </div>
+
+        <div class="flex items-baseline justify-between">
+          <span class="font-serif text-2xl font-bold tabular-nums" id="todayReviewedCount">0</span>
+          <span class="font-mono text-[11px] text-ink-500 dark:text-ink-400">meta <strong id="dailyGoalLabel">20</strong>/dia</span>
+        </div>
+
+        <!-- Tag nativa <progress> do HTML5 -->
+        <progress id="dailyProgress" value="0" max="20" class="w-full h-1.5 rounded-sm" aria-label="Progresso da meta diária"></progress>
+
+        <div class="pt-1 flex items-center justify-between text-[11px] font-mono text-ink-500 dark:text-ink-400">
+          <span>Voz TTS</span>
+          <span id="ttsStatusPill" class="inline-flex items-center gap-1.5 text-pine-700 dark:text-pine-400">
+            <span class="w-1.5 h-1.5 rounded-full bg-pine-700 dark:bg-pine-400"></span>
+            <span id="ttsVoiceShort">Verificando...</span>
+          </span>
+        </div>
+      </section>
+
+      <!-- Seção 3: Controles Pedagógicos para Russo -->
+      <section aria-labelledby="headingPedagogy" class="pt-6 border-t border-paper-300 dark:border-ink-700 space-y-3.5">
+        <h2 id="headingPedagogy" class="font-mono text-[11px] font-semibold uppercase tracking-widest text-ink-500 dark:text-ink-400">
+          Leitura &amp; Prática
+        </h2>
+
+        <label class="flex items-center justify-between gap-3 cursor-pointer select-none">
+          <span class="text-sm text-ink-950 dark:text-ink-100">
+            Acento tônico <span lang="ru" class="font-serif text-xs text-ink-500 dark:text-ink-400">(ударе́ние)</span>
+          </span>
+          <input id="toggleStress" type="checkbox" checked class="sr-only peer">
+          <span class="w-9 h-5 rounded-full bg-paper-300 dark:bg-ink-700 peer-checked:bg-vermilion-600 dark:peer-checked:bg-vermilion-400 relative transition-colors shrink-0 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-4 after:h-4 after:rounded-full after:bg-paper-50 after:transition-transform peer-checked:after:translate-x-4"></span>
+        </label>
+
+        <label class="flex items-center justify-between gap-3 cursor-pointer select-none">
+          <span class="text-sm text-ink-950 dark:text-ink-100">Transliteração e fonética</span>
+          <input id="toggleTranslit" type="checkbox" checked class="sr-only peer">
+          <span class="w-9 h-5 rounded-full bg-paper-300 dark:bg-ink-700 peer-checked:bg-vermilion-600 dark:peer-checked:bg-vermilion-400 relative transition-colors shrink-0 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-4 after:h-4 after:rounded-full after:bg-paper-50 after:transition-transform peer-checked:after:translate-x-4"></span>
+        </label>
+
+        <label class="flex items-center justify-between gap-3 cursor-pointer select-none">
+          <span class="text-sm text-ink-950 dark:text-ink-100">Reprodução automática</span>
+          <input id="toggleAutoPlay" type="checkbox" class="sr-only peer">
+          <span class="w-9 h-5 rounded-full bg-paper-300 dark:bg-ink-700 peer-checked:bg-vermilion-600 dark:peer-checked:bg-vermilion-400 relative transition-colors shrink-0 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-4 after:h-4 after:rounded-full after:bg-paper-50 after:transition-transform peer-checked:after:translate-x-4"></span>
+        </label>
+
+        <label class="flex items-center justify-between gap-3 cursor-pointer select-none">
+          <span class="text-sm text-ink-950 dark:text-ink-100">Modo ditado (escrita)</span>
+          <input id="toggleDictation" type="checkbox" class="sr-only peer">
+          <span class="w-9 h-5 rounded-full bg-paper-300 dark:bg-ink-700 peer-checked:bg-vermilion-600 dark:peer-checked:bg-vermilion-400 relative transition-colors shrink-0 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-4 after:h-4 after:rounded-full after:bg-paper-50 after:transition-transform peer-checked:after:translate-x-4"></span>
+        </label>
+      </section>
+
+      <!-- Seção 4: Atalhos de Teclado usando <details>, <summary> e <kbd> -->
+      <details class="pt-6 border-t border-paper-300 dark:border-ink-700 group">
+        <summary class="font-mono text-[11px] font-semibold uppercase tracking-widest text-ink-500 dark:text-ink-400 cursor-pointer select-none flex items-center justify-between">
+          <span>Atalhos de teclado</span>
+          <svg class="w-3.5 h-3.5 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+          </svg>
+        </summary>
+        <ul class="mt-3 space-y-2 text-xs text-ink-500 dark:text-ink-400">
+          <li class="flex items-center justify-between">
+            <span>Virar ficha</span>
+            <kbd class="font-mono text-[11px] px-1.5 py-0.5 rounded bg-paper-200 dark:bg-ink-800 border border-paper-300 dark:border-ink-700 text-ink-950 dark:text-ink-100">Espaço</kbd>
+          </li>
+          <li class="flex items-center justify-between">
+            <span>Avaliar revisão</span>
+            <span class="flex gap-1">
+              <kbd class="font-mono text-[11px] px-1.5 py-0.5 rounded bg-paper-200 dark:bg-ink-800 border border-paper-300 dark:border-ink-700 text-ink-950 dark:text-ink-100">1</kbd>
+              <kbd class="font-mono text-[11px] px-1.5 py-0.5 rounded bg-paper-200 dark:bg-ink-800 border border-paper-300 dark:border-ink-700 text-ink-950 dark:text-ink-100">2</kbd>
+              <kbd class="font-mono text-[11px] px-1.5 py-0.5 rounded bg-paper-200 dark:bg-ink-800 border border-paper-300 dark:border-ink-700 text-ink-950 dark:text-ink-100">3</kbd>
+              <kbd class="font-mono text-[11px] px-1.5 py-0.5 rounded bg-paper-200 dark:bg-ink-800 border border-paper-300 dark:border-ink-700 text-ink-950 dark:text-ink-100">4</kbd>
+            </span>
+          </li>
+          <li class="flex items-center justify-between">
+            <span>Ouvir normal / lento</span>
+            <span class="flex gap-1">
+              <kbd class="font-mono text-[11px] px-1.5 py-0.5 rounded bg-paper-200 dark:bg-ink-800 border border-paper-300 dark:border-ink-700 text-ink-950 dark:text-ink-100">R</kbd>
+              <kbd class="font-mono text-[11px] px-1.5 py-0.5 rounded bg-paper-200 dark:bg-ink-800 border border-paper-300 dark:border-ink-700 text-ink-950 dark:text-ink-100">S</kbd>
+            </span>
+          </li>
+          <li class="flex items-center justify-between">
+            <span>Ouvir frase exemplo</span>
+            <kbd class="font-mono text-[11px] px-1.5 py-0.5 rounded bg-paper-200 dark:bg-ink-800 border border-paper-300 dark:border-ink-700 text-ink-950 dark:text-ink-100">E</kbd>
+          </li>
+        </ul>
+      </details>
+    </aside>
+
+    <!-- ===================================================================
+         PALCO DE ESTUDO (<section>): CABECALHO DA SESSAO + FICHA 3D + SM-2
+         =================================================================== -->
+    <section aria-label="Mesa de revisão de flashcards" class="lg:col-span-8 xl:col-span-9 space-y-6 order-1 lg:order-2">
+
+      <!-- Cabeçalho enxuto da sessão -->
+      <div class="space-y-3">
+        <div class="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p id="sessionModeBadge" class="font-mono text-[11px] uppercase tracking-widest text-vermilion-600 dark:text-vermilion-400">
+              Repetição espaçada · SM-2
+            </p>
+            <h2 id="activeDeckTitle" class="font-serif text-2xl sm:text-3xl font-bold tracking-tight mt-0.5">
+              Todos os cadernos
+            </h2>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <span id="sessionCounter" class="font-mono text-xs text-ink-500 dark:text-ink-400 tabular-nums">
+              Restantes: 0
+            </span>
+            <button id="btnEditCurrentCard" type="button" title="Editar esta ficha" aria-label="Editar ficha atual"
+              class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-ink-500 hover:text-ink-950 dark:text-ink-400 dark:hover:text-ink-100 border border-paper-300 dark:border-ink-700 hover:bg-paper-200/70 dark:hover:bg-ink-800 transition cursor-pointer">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"/>
+              </svg>
+              <span>Editar</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Barra de progresso da sessão atual (<progress>) -->
+        <progress id="sessionProgress" value="0" max="10" class="w-full h-1 rounded-sm" aria-label="Progresso da sessão atual"></progress>
+      </div>
+
+      <!-- Palco da Ficha Interativa (<article>) -->
+      <div id="studyStage">
+        <article class="perspective-card w-full" aria-label="Ficha de estudo de russo">
+          <div id="flashcardInner" class="card-3d-inner min-h-[440px] sm:min-h-[470px]">
+
+            <!-- ==================== FRENTE DA FICHA ==================== -->
+            <div id="cardFront" class="card-face absolute inset-0 rounded-xl bg-paper-50 dark:bg-ink-900 border border-paper-300 dark:border-ink-700 border-t-4 border-t-vermilion-600 dark:border-t-vermilion-400 index-card-shadow p-6 sm:p-9 flex flex-col justify-between">
+
+              <!-- Registro catalográfico superior (estilo ficha de biblioteca) -->
+              <div class="flex items-center justify-between gap-2 pb-3 border-b border-paper-200 dark:border-ink-800 font-mono text-[11px] uppercase tracking-wider text-ink-500 dark:text-ink-400">
+                <span id="frontDeckChip">Caderno</span>
+                <span id="frontStatusChip">Nova</span>
+              </div>
+
+              <!-- Centro da Ficha: Termo em Cirílico com lang="ru" em PT Serif -->
+              <div class="my-auto py-5 text-center space-y-4">
+                <!-- lang="ru" instrui leitores de tela e sistemas de pronúncia sobre o idioma russo -->
+                <p id="frontRussianWord" lang="ru" class="font-serif text-5xl sm:text-6xl font-bold tracking-tight text-ink-950 dark:text-ink-100 break-words leading-tight">
+                  Приве́т
+                </p>
+
+                <!-- Transliteração acadêmica e aproximação fonética para PT-BR -->
+                <div id="frontPhoneticBox" class="space-y-1">
+                  <p id="frontTranslit" class="font-mono text-sm sm:text-base text-ink-500 dark:text-ink-400">Privet</p>
+                  <p class="text-xs sm:text-sm text-ink-500 dark:text-ink-400">
+                    pronúncia aproximada: <span id="frontPhoneticPt" class="font-serif italic text-vermilion-600 dark:text-vermilion-400 text-base">privyét</span>
+                  </p>
+                </div>
+
+                <!-- Controles de Áudio (Web Speech API) com desenho minimalista -->
+                <div class="flex flex-wrap items-center justify-center gap-2.5 pt-2">
+                  <button id="btnSpeakNormal" type="button"
+                    class="inline-flex items-center gap-2.5 px-4 py-2 rounded-lg font-medium text-sm bg-vermilion-600 hover:bg-vermilion-700 dark:bg-vermilion-400 dark:hover:bg-vermilion-600 text-paper-50 dark:text-ink-950 dark:hover:text-paper-50 transition active:scale-[0.98] cursor-pointer">
+                    <span class="flex items-end gap-[2px] h-3.5" aria-hidden="true">
+                      <span class="wave-bar w-[2px] h-2 bg-current rounded-full"></span>
+                      <span class="wave-bar w-[2px] h-3.5 bg-current rounded-full"></span>
+                      <span class="wave-bar w-[2px] h-1.5 bg-current rounded-full"></span>
+                    </span>
+                    <span>Ouvir</span>
+                    <kbd class="hidden sm:inline font-mono text-[10px] opacity-75">R</kbd>
+                  </button>
+
+                  <button id="btnSpeakSlow" type="button"
+                    class="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm bg-paper-100 hover:bg-paper-200 dark:bg-ink-800 dark:hover:bg-ink-700 text-ink-950 dark:text-ink-100 border border-paper-300 dark:border-ink-700 transition active:scale-[0.98] cursor-pointer">
+                    <svg class="w-3.5 h-3.5 text-ink-500 dark:text-ink-400" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true">
+                      <circle cx="12" cy="12" r="9"/>
+                      <path stroke-linecap="round" d="M12 7v5l3 2"/>
+                    </svg>
+                    <span>Lento (0.65×)</span>
+                    <kbd class="hidden sm:inline font-mono text-[10px] text-ink-500 dark:text-ink-400">S</kbd>
+                  </button>
+                </div>
+
+                <!-- Painel Opcional de Ditado / Prática de Escrita em Cirílico -->
+                <div id="dictationPanel" class="hidden max-w-md mx-auto pt-3 space-y-2 text-left">
+                  <label for="dictationInput" class="block font-mono text-[11px] uppercase tracking-wider text-ink-500 dark:text-ink-400">
+                    Transcreva em cirílico
+                  </label>
+                  <div class="flex gap-2">
+                    <input id="dictationInput" type="text" lang="ru" autocomplete="off" spellcheck="false" placeholder="Digite em cirílico..."
+                      class="flex-1 px-3 py-2 rounded-lg text-sm font-serif bg-paper-100 dark:bg-ink-950 border border-paper-300 dark:border-ink-700 focus:outline-none focus:border-vermilion-600 dark:focus:border-vermilion-400">
+                    <button id="btnCheckDictation" type="button"
+                      class="px-4 py-2 rounded-lg text-xs font-semibold bg-prussian-700 hover:opacity-90 text-paper-50 transition cursor-pointer">
+                      Conferir
+                    </button>
+                  </div>
+                  <p id="dictationFeedback" class="text-xs font-medium min-h-[18px]" aria-live="polite"></p>
+                </div>
+              </div>
+
+              <!-- Rodapé da Frente: Botão de virar a ficha -->
+              <div class="pt-4 border-t border-paper-200 dark:border-ink-800 flex justify-center">
+                <button id="btnFlipToBack" type="button"
+                  class="w-full sm:w-auto min-w-[230px] inline-flex items-center justify-center gap-2.5 px-6 py-2.5 rounded-lg font-medium text-sm bg-ink-950 hover:bg-ink-800 dark:bg-paper-100 dark:hover:bg-paper-200 text-paper-50 dark:text-ink-950 transition active:scale-[0.99] cursor-pointer">
+                  <span>Virar ficha</span>
+                  <kbd class="font-mono text-[10px] opacity-70 px-1.5 py-0.5 rounded border border-current/25">Espaço</kbd>
+                </button>
+              </div>
+            </div>
+
+            <!-- ==================== VERSO DA FICHA ==================== -->
+            <div id="cardBack" class="card-face card-face-back absolute inset-0 rounded-xl bg-paper-50 dark:bg-ink-900 border border-paper-300 dark:border-ink-700 border-t-4 border-t-prussian-700 dark:border-t-prussian-400 index-card-shadow p-6 sm:p-9 flex flex-col justify-between overflow-y-auto">
+
+              <!-- Topo do Verso -->
+              <div class="flex items-center justify-between gap-2 pb-3 border-b border-paper-200 dark:border-ink-800">
+                <div class="flex items-center gap-2.5">
+                  <span id="backRussianSmall" lang="ru" class="font-serif text-xl sm:text-2xl font-bold text-ink-950 dark:text-ink-100">Приве́т</span>
+                  <button id="btnSpeakBackWord" type="button" aria-label="Ouvir palavra novamente"
+                    class="p-1.5 rounded-md text-vermilion-600 dark:text-vermilion-400 hover:bg-paper-200 dark:hover:bg-ink-800 transition cursor-pointer">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M11 5L6 9H2v6h4l5 4V5z"/>
+                    </svg>
+                  </button>
+                </div>
+
+                <button id="btnFlipToFront" type="button"
+                  class="font-mono text-[11px] uppercase tracking-wider text-ink-500 hover:text-ink-950 dark:text-ink-400 dark:hover:text-ink-100 inline-flex items-center gap-1.5 cursor-pointer">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3"/>
+                  </svg>
+                  <span>Frente</span>
+                </button>
+              </div>
+
+              <!-- Corpo do Verso: Tradução + Frase em Contexto + Nota Editorial (<details>) -->
+              <div class="my-auto py-4 space-y-5">
+                <div>
+                  <span class="font-mono text-[11px] uppercase tracking-widest text-ink-500 dark:text-ink-400">Tradução</span>
+                  <h3 id="backTranslation" class="font-serif text-2xl sm:text-3xl font-bold text-ink-950 dark:text-ink-100 mt-1">
+                    Oi / Olá (informal)
+                  </h3>
+                </div>
+
+                <!-- Bloco de frase de exemplo com borda lateral editorial -->
+                <div class="pl-4 border-l-2 border-prussian-700 dark:border-prussian-400 py-1 flex items-start justify-between gap-4">
+                  <div class="space-y-1">
+                    <p id="backExampleRu" lang="ru" class="font-serif text-lg sm:text-xl text-ink-950 dark:text-ink-100 leading-snug">
+                      Приве́т, как у тебя́ дела́?
+                    </p>
+                    <p id="backExamplePt" class="text-sm text-ink-500 dark:text-ink-400">
+                      Oi, como vão as coisas com você?
+                    </p>
+                  </div>
+                  <button id="btnSpeakExample" type="button" title="Ouvir frase de exemplo (Atalho E)" aria-label="Ouvir frase de exemplo em russo"
+                    class="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-paper-200/80 hover:bg-paper-300/70 dark:bg-ink-800 dark:hover:bg-ink-700 text-ink-950 dark:text-ink-100 transition active:scale-95 cursor-pointer">
+                    <svg class="w-3.5 h-3.5 text-prussian-700 dark:text-prussian-400" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M8 5.14v14l11-7-11-7z"/>
+                    </svg>
+                    <span>Frase</span>
+                    <kbd class="hidden sm:inline font-mono text-[10px] text-ink-500 dark:text-ink-400">E</kbd>
+                  </button>
+                </div>
+
+                <!-- Tag nativa <details> e <summary> para observação linguística -->
+                <details id="grammarDetails" open class="rounded-lg bg-paper-100/80 dark:bg-ink-950/60 border border-paper-200 dark:border-ink-800 px-4 py-3 text-sm group">
+                  <summary class="font-mono text-[11px] font-semibold uppercase tracking-wider text-ink-500 dark:text-ink-400 cursor-pointer select-none flex items-center justify-between">
+                    <span>Nota linguística e cultural</span>
+                    <svg class="w-3.5 h-3.5 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                  </summary>
+                  <p id="backGrammarNote" class="mt-2 text-xs sm:text-sm text-ink-950/85 dark:text-ink-100/85 leading-relaxed">
+                    Nota explicativa do idioma russo.
+                  </p>
+                </details>
+              </div>
+
+              <!-- Metadados SM-2 + tag nativa <time> -->
+              <div class="pt-3 border-t border-paper-200 dark:border-ink-800 flex flex-wrap items-center justify-between gap-2 font-mono text-[11px] text-ink-500 dark:text-ink-400">
+                <span>EF <strong id="metaEase" class="text-ink-950 dark:text-ink-100">2.50</strong> · Rep. <strong id="metaReps" class="text-ink-950 dark:text-ink-100">0</strong></span>
+                <span>Revisão: <time id="metaDueTime" datetime="" class="text-ink-950 dark:text-ink-100">Agora</time></span>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- ==================== BOTOES DE AVALIACAO SM-2 ==================== -->
+        <div id="ratingBar" class="mt-5 opacity-40 pointer-events-none transition-opacity duration-200" aria-label="Avaliação de memorização SM-2">
+          <p class="text-center font-mono text-[11px] uppercase tracking-wider text-ink-500 dark:text-ink-400 mb-3" id="ratingHint">
+            Vire a ficha para registrar sua lembrança
+          </p>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            <button data-quality="1" type="button"
+              class="rate-btn group flex flex-col items-start p-3 rounded-lg bg-paper-50 dark:bg-ink-900 border border-paper-300 dark:border-ink-700 hover:border-vermilion-600 dark:hover:border-vermilion-400 transition active:scale-[0.98] cursor-pointer">
+              <span class="w-full flex items-center justify-between">
+                <span class="text-sm font-semibold text-vermilion-600 dark:text-vermilion-400">Errei</span>
+                <kbd class="font-mono text-[10px] text-ink-400">1</kbd>
+              </span>
+              <span id="previewInt1" class="font-mono text-[11px] text-ink-500 dark:text-ink-400 mt-1 tabular-nums">&lt; 1 min</span>
+            </button>
+
+            <button data-quality="2" type="button"
+              class="rate-btn group flex flex-col items-start p-3 rounded-lg bg-paper-50 dark:bg-ink-900 border border-paper-300 dark:border-ink-700 hover:border-ochre-700 dark:hover:border-ochre-400 transition active:scale-[0.98] cursor-pointer">
+              <span class="w-full flex items-center justify-between">
+                <span class="text-sm font-semibold text-ochre-700 dark:text-ochre-400">Difícil</span>
+                <kbd class="font-mono text-[10px] text-ink-400">2</kbd>
+              </span>
+              <span id="previewInt2" class="font-mono text-[11px] text-ink-500 dark:text-ink-400 mt-1 tabular-nums">12 h</span>
+            </button>
+
+            <button data-quality="3" type="button"
+              class="rate-btn group flex flex-col items-start p-3 rounded-lg bg-paper-50 dark:bg-ink-900 border border-paper-300 dark:border-ink-700 hover:border-pine-700 dark:hover:border-pine-400 transition active:scale-[0.98] cursor-pointer">
+              <span class="w-full flex items-center justify-between">
+                <span class="text-sm font-semibold text-pine-700 dark:text-pine-400">Bom</span>
+                <kbd class="font-mono text-[10px] text-ink-400">3</kbd>
+              </span>
+              <span id="previewInt3" class="font-mono text-[11px] text-ink-500 dark:text-ink-400 mt-1 tabular-nums">1 dia</span>
+            </button>
+
+            <button data-quality="4" type="button"
+              class="rate-btn group flex flex-col items-start p-3 rounded-lg bg-paper-50 dark:bg-ink-900 border border-paper-300 dark:border-ink-700 hover:border-prussian-700 dark:hover:border-prussian-400 transition active:scale-[0.98] cursor-pointer">
+              <span class="w-full flex items-center justify-between">
+                <span class="text-sm font-semibold text-prussian-700 dark:text-prussian-400">Fácil</span>
+                <kbd class="font-mono text-[10px] text-ink-400">4</kbd>
+              </span>
+              <span id="previewInt4" class="font-mono text-[11px] text-ink-500 dark:text-ink-400 mt-1 tabular-nums">4 dias</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== TELA DE SESSAO CONCLUIDA ==================== -->
+      <div id="sessionCompleteStage" class="hidden rounded-xl bg-paper-50 dark:bg-ink-900 border border-paper-300 dark:border-ink-700 index-card-shadow p-10 sm:p-14 text-center space-y-5">
+        <p class="font-mono text-[11px] uppercase tracking-widest text-pine-700 dark:text-pine-400">Revisão concluída</p>
+        <div class="space-y-2">
+          <p lang="ru" class="font-serif text-3xl sm:text-4xl font-bold text-ink-950 dark:text-ink-100">Отли́чная рабо́та.</p>
+          <p class="text-sm text-ink-500 dark:text-ink-400 max-w-md mx-auto">
+            Todas as fichas pendentes deste caderno foram reagendadas pelo algoritmo SM-2. Você pode continuar praticando em modo livre ou selecionar outro caderno.
+          </p>
+        </div>
+
+        <div class="flex flex-wrap items-center justify-center gap-3 pt-2">
+          <button id="btnPracticeFree" type="button"
+            class="px-5 py-2.5 rounded-lg font-medium text-sm bg-ink-950 hover:bg-ink-800 dark:bg-paper-100 dark:hover:bg-paper-200 text-paper-50 dark:text-ink-950 transition cursor-pointer">
+            Praticar todas novamente
+          </button>
+          <button id="btnCompleteNewCard" type="button"
+            class="px-5 py-2.5 rounded-lg font-medium text-sm border border-paper-300 dark:border-ink-700 hover:bg-paper-200 dark:hover:bg-ink-800 transition cursor-pointer">
+            Adicionar nova ficha
+          </button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- =====================================================================
+       RODAPE SEMANTICO (<footer>)
+       ===================================================================== -->
+  <footer class="mt-auto border-t border-paper-300 dark:border-ink-700 py-4 px-4">
+    <div class="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-2 text-xs text-ink-500 dark:text-ink-400">
+      <p class="font-serif">SlovoFlow — Caderno de repetição espaçada para língua russa.</p>
+      <p class="font-mono text-[11px]">HTML5 Semântico · SM-2 · Web Speech API</p>
+    </div>
+  </footer>
+
+  <!-- =====================================================================
+       MODAL 1 (<dialog>): ALFABETO CIRILICO INTERATIVO (ESPECIME DE 33 LETRAS)
+       ===================================================================== -->
+  <dialog id="alphabetDialog" aria-labelledby="alphabetTitle"
+    class="w-[95vw] max-w-4xl rounded-xl bg-paper-50 dark:bg-ink-900 text-ink-950 dark:text-ink-100 border border-paper-300 dark:border-ink-700 p-0 shadow-2xl overflow-hidden m-auto">
+    <div class="px-6 py-5 border-b border-paper-300 dark:border-ink-700 flex items-start justify-between gap-4">
+      <div>
+        <p class="font-mono text-[11px] uppercase tracking-widest text-ink-500 dark:text-ink-400">Referência fonética · 33 caracteres</p>
+        <h2 id="alphabetTitle" class="font-serif text-xl sm:text-2xl font-bold mt-0.5">Alfabeto Cirílico Russo</h2>
+        <p class="text-xs sm:text-sm text-ink-500 dark:text-ink-400 mt-1">
+          Selecione qualquer letra para ouvir a pronúncia nativa e uma palavra-exemplo.
+        </p>
+      </div>
+      <button data-close-dialog="alphabetDialog" type="button" aria-label="Fechar alfabeto"
+        class="p-2 rounded-lg text-ink-500 hover:text-ink-950 dark:text-ink-400 dark:hover:text-ink-100 hover:bg-paper-200 dark:hover:bg-ink-800 cursor-pointer">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <div class="p-6 max-h-[75vh] overflow-y-auto space-y-5">
+      <!-- Legenda tipográfica com indicadores discretos -->
+      <div class="flex flex-wrap items-center gap-5 text-xs text-ink-500 dark:text-ink-400">
+        <span class="inline-flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-sm bg-pine-700 dark:bg-pine-400"></span> Igual ao português
+        </span>
+        <span class="inline-flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-sm bg-vermilion-600 dark:bg-vermilion-400"></span> Falso amigo visual
+        </span>
+        <span class="inline-flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-sm bg-prussian-700 dark:bg-prussian-400"></span> Exclusiva do cirílico
+        </span>
+      </div>
+
+      <!-- Grade das 33 letras renderizada via JS -->
+      <div id="alphabetGrid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-2.5"></div>
+    </div>
+  </dialog>
+
+  <!-- =====================================================================
+       MODAL 2 (<dialog>): CRIAR / EDITAR FICHA + TECLADO CIRILICO + TESTE TTS
+       ===================================================================== -->
+  <dialog id="cardFormDialog" aria-labelledby="cardFormTitle"
+    class="w-[95vw] max-w-2xl rounded-xl bg-paper-50 dark:bg-ink-900 text-ink-950 dark:text-ink-100 border border-paper-300 dark:border-ink-700 p-0 shadow-2xl overflow-hidden m-auto">
+    <div class="px-6 py-5 border-b border-paper-300 dark:border-ink-700 flex items-center justify-between gap-4">
+      <h2 id="cardFormTitle" class="font-serif text-xl font-bold">Nova ficha de estudo</h2>
+      <button data-close-dialog="cardFormDialog" type="button" aria-label="Fechar formulário"
+        class="p-2 rounded-lg text-ink-500 hover:text-ink-950 dark:text-ink-400 dark:hover:text-ink-100 hover:bg-paper-200 dark:hover:bg-ink-800 cursor-pointer">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <!-- Formulário com validação nativa HTML5 (required, minlength, placeholder) -->
+    <form id="cardForm" class="p-6 max-h-[78vh] overflow-y-auto space-y-4">
+      <input type="hidden" id="fieldCardId">
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label for="fieldDeck" class="block font-mono text-[11px] uppercase tracking-wider text-ink-500 dark:text-ink-400 mb-1.5">Caderno *</label>
+          <select id="fieldDeck" required
+            class="w-full px-3 py-2 rounded-lg text-sm bg-paper-100 dark:bg-ink-950 border border-paper-300 dark:border-ink-700 focus:border-vermilion-600 dark:focus:border-vermilion-400 focus:outline-none">
+          </select>
+        </div>
+
+        <div>
+          <label for="fieldTranslation" class="block font-mono text-[11px] uppercase tracking-wider text-ink-500 dark:text-ink-400 mb-1.5">Tradução (PT-BR) *</label>
+          <input id="fieldTranslation" type="text" required minlength="1" placeholder="Ex.: Obrigado(a)"
+            class="w-full px-3 py-2 rounded-lg text-sm bg-paper-100 dark:bg-ink-950 border border-paper-300 dark:border-ink-700 focus:border-vermilion-600 dark:focus:border-vermilion-400 focus:outline-none">
+        </div>
+      </div>
+
+      <!-- Palavra em Russo + Teste de Pronúncia Ao Vivo -->
+      <div>
+        <div class="flex items-center justify-between mb-1.5">
+          <label for="fieldRussian" class="block font-mono text-[11px] uppercase tracking-wider text-ink-500 dark:text-ink-400">
+            Palavra em russo (cirílico) *
+          </label>
+          <button id="btnTestFormTts" type="button"
+            class="inline-flex items-center gap-1.5 font-mono text-[11px] font-medium text-vermilion-600 dark:text-vermilion-400 hover:underline cursor-pointer">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072M11 5L6 9H2v6h4l5 4V5z"/>
+            </svg>
+            <span>Testar pronúncia</span>
+          </button>
+        </div>
+        <input id="fieldRussian" type="text" lang="ru" required minlength="1" placeholder="Ex.: Спасибо"
+          class="w-full px-3 py-2 rounded-lg font-serif text-lg font-bold bg-paper-100 dark:bg-ink-950 border border-paper-300 dark:border-ink-700 focus:border-vermilion-600 dark:focus:border-vermilion-400 focus:outline-none">
+      </div>
+
+      <!-- Teclado Cirílico Virtual para digitação em teclados ABNT2 -->
+      <details class="rounded-lg bg-paper-100 dark:bg-ink-950/70 border border-paper-300 dark:border-ink-700 p-3 group">
+        <summary class="font-mono text-[11px] uppercase tracking-wider text-prussian-700 dark:text-prussian-400 cursor-pointer select-none flex items-center justify-between">
+          <span>Teclado cirílico virtual</span>
+          <svg class="w-3.5 h-3.5 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+          </svg>
+        </summary>
+        <div id="virtualKeyboard" class="mt-3 flex flex-wrap gap-1"></div>
+      </details>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label for="fieldTranslit" class="block font-mono text-[11px] uppercase tracking-wider text-ink-500 dark:text-ink-400 mb-1.5">Transliteração</label>
+          <input id="fieldTranslit" type="text" placeholder="Ex.: Spasibo"
+            class="w-full px-3 py-2 rounded-lg text-sm font-mono bg-paper-100 dark:bg-ink-950 border border-paper-300 dark:border-ink-700 focus:border-vermilion-600 dark:focus:border-vermilion-400 focus:outline-none">
+        </div>
+
+        <div>
+          <label for="fieldPhoneticPt" class="block font-mono text-[11px] uppercase tracking-wider text-ink-500 dark:text-ink-400 mb-1.5">Fonética (PT-BR)</label>
+          <input id="fieldPhoneticPt" type="text" placeholder="Ex.: spassíba"
+            class="w-full px-3 py-2 rounded-lg text-sm font-serif italic bg-paper-100 dark:bg-ink-950 border border-paper-300 dark:border-ink-700 focus:border-vermilion-600 dark:focus:border-vermilion-400 focus:outline-none">
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label for="fieldExampleRu" class="block font-mono text-[11px] uppercase tracking-wider text-ink-500 dark:text-ink-400 mb-1.5">Frase de exemplo (russo)</label>
+          <input id="fieldExampleRu" type="text" lang="ru" placeholder="Ex.: Большое спасибо!"
+            class="w-full px-3 py-2 rounded-lg text-sm font-serif bg-paper-100 dark:bg-ink-950 border border-paper-300 dark:border-ink-700 focus:border-vermilion-600 dark:focus:border-vermilion-400 focus:outline-none">
+        </div>
+
+        <div>
+          <label for="fieldExamplePt" class="block font-mono text-[11px] uppercase tracking-wider text-ink-500 dark:text-ink-400 mb-1.5">Tradução da frase</label>
+          <input id="fieldExamplePt" type="text" placeholder="Ex.: Muito obrigado!"
+            class="w-full px-3 py-2 rounded-lg text-sm bg-paper-100 dark:bg-ink-950 border border-paper-300 dark:border-ink-700 focus:border-vermilion-600 dark:focus:border-vermilion-400 focus:outline-none">
+        </div>
+      </div>
+
+      <div>
+        <label for="fieldGrammarNote" class="block font-mono text-[11px] uppercase tracking-wider text-ink-500 dark:text-ink-400 mb-1.5">Nota gramatical ou cultural</label>
+        <textarea id="fieldGrammarNote" rows="2" placeholder="Observações de pronúncia, gênero ou uso..."
+          class="w-full px-3 py-2 rounded-lg text-sm bg-paper-100 dark:bg-ink-950 border border-paper-300 dark:border-ink-700 focus:border-vermilion-600 dark:focus:border-vermilion-400 focus:outline-none"></textarea>
+      </div>
+
+      <div class="pt-4 border-t border-paper-300 dark:border-ink-700 flex items-center justify-end gap-2.5">
+        <button data-close-dialog="cardFormDialog" type="button"
+          class="px-4 py-2 rounded-lg text-sm font-medium border border-paper-300 dark:border-ink-700 hover:bg-paper-200 dark:hover:bg-ink-800 cursor-pointer">
+          Cancelar
+        </button>
+        <button type="submit"
+          class="px-5 py-2 rounded-lg text-sm font-medium bg-ink-950 hover:bg-ink-800 dark:bg-paper-100 dark:hover:bg-paper-200 text-paper-50 dark:text-ink-950 cursor-pointer">
+          Salvar ficha
+        </button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- =====================================================================
+       MODAL 3 (<dialog>): ACERVO DE FICHAS (BUSCA, AUDIO, EDICAO, EXCLUSAO)
+       ===================================================================== -->
+  <dialog id="manageDialog" aria-labelledby="manageTitle"
+    class="w-[95vw] max-w-3xl rounded-xl bg-paper-50 dark:bg-ink-900 text-ink-950 dark:text-ink-100 border border-paper-300 dark:border-ink-700 p-0 shadow-2xl overflow-hidden m-auto">
+    <div class="px-6 py-5 border-b border-paper-300 dark:border-ink-700 flex items-center justify-between gap-4">
+      <div>
+        <h2 id="manageTitle" class="font-serif text-xl font-bold">Acervo de fichas</h2>
+        <p class="text-xs text-ink-500 dark:text-ink-400 mt-0.5">Pesquise, ouça, edite ou remova termos cadastrados.</p>
+      </div>
+      <button data-close-dialog="manageDialog" type="button" aria-label="Fechar acervo"
+        class="p-2 rounded-lg text-ink-500 hover:text-ink-950 dark:text-ink-400 dark:hover:text-ink-100 hover:bg-paper-200 dark:hover:bg-ink-800 cursor-pointer">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <div class="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+      <div class="flex flex-col sm:flex-row gap-2.5">
+        <input id="manageSearchInput" type="search" placeholder="Filtrar por russo, transliteração ou português..."
+          class="flex-1 px-3 py-2 rounded-lg text-sm bg-paper-100 dark:bg-ink-950 border border-paper-300 dark:border-ink-700 focus:border-vermilion-600 dark:focus:border-vermilion-400 focus:outline-none">
+        <button id="btnManageAddCard" type="button"
+          class="px-4 py-2 rounded-lg text-sm font-medium bg-ink-950 hover:bg-ink-800 dark:bg-paper-100 dark:hover:bg-paper-200 text-paper-50 dark:text-ink-950 cursor-pointer">
+          Nova ficha
+        </button>
+      </div>
+      <div id="manageCardList" class="divide-y divide-paper-200 dark:divide-ink-800 border border-paper-300 dark:border-ink-700 rounded-lg overflow-hidden"></div>
+    </div>
+  </dialog>
+
+  <!-- =====================================================================
+       MODAL 4 (<dialog>): CONFIGURACOES DE VOZ (TTS), BACKUP JSON E RESET
+       ===================================================================== -->
+  <dialog id="settingsDialog" aria-labelledby="settingsTitle"
+    class="w-[95vw] max-w-lg rounded-xl bg-paper-50 dark:bg-ink-900 text-ink-950 dark:text-ink-100 border border-paper-300 dark:border-ink-700 p-0 shadow-2xl overflow-hidden m-auto">
+    <div class="px-6 py-5 border-b border-paper-300 dark:border-ink-700 flex items-center justify-between gap-4">
+      <h2 id="settingsTitle" class="font-serif text-xl font-bold">Configurações e dados</h2>
+      <button data-close-dialog="settingsDialog" type="button" aria-label="Fechar configurações"
+        class="p-2 rounded-lg text-ink-500 hover:text-ink-950 dark:text-ink-400 dark:hover:text-ink-100 hover:bg-paper-200 dark:hover:bg-ink-800 cursor-pointer">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <div class="p-6 space-y-6 max-h-[75vh] overflow-y-auto">
+      <!-- Seletor de Motor TTS (Híbrido: Nativo + Fallback Online Gratuito) -->
+      <div class="space-y-2">
+        <label for="ttsEngineSelect" class="block font-mono text-[11px] uppercase tracking-wider text-ink-500 dark:text-ink-400">
+          Motor de áudio (TTS)
+        </label>
+        <select id="ttsEngineSelect"
+          class="w-full px-3 py-2 rounded-lg text-sm bg-paper-100 dark:bg-ink-950 border border-paper-300 dark:border-ink-700 focus:border-vermilion-600 focus:outline-none">
+          <option value="auto">Automático (Nativo se disponível, senão Online)</option>
+          <option value="online">Online gratuito (Funciona em qualquer PC)</option>
+          <option value="native">Apenas nativo do navegador (Offline)</option>
+        </select>
+        <p class="text-[11px] text-ink-500 dark:text-ink-400 leading-relaxed">
+          No modo automático ou online, o áudio em russo funciona mesmo em computadores sem o pacote de idioma instalado.
+        </p>
+      </div>
+
+      <!-- Seletor de Voz Russa -->
+      <div class="space-y-2">
+        <label for="voiceSelect" class="block font-mono text-[11px] uppercase tracking-wider text-ink-500 dark:text-ink-400">
+          Voz local (Web Speech API)
+        </label>
+        <select id="voiceSelect"
+          class="w-full px-3 py-2 rounded-lg text-sm bg-paper-100 dark:bg-ink-950 border border-paper-300 dark:border-ink-700 focus:border-vermilion-600 focus:outline-none">
+        </select>
+        <button id="btnTestSelectedVoice" type="button"
+          class="font-mono text-xs text-vermilion-600 dark:text-vermilion-400 hover:underline cursor-pointer">
+          Testar voz selecionada
+        </button>
+      </div>
+
+      <!-- Velocidade padrão de leitura -->
+      <div class="space-y-2">
+        <div class="flex items-center justify-between">
+          <label for="rateRange" class="font-mono text-[11px] uppercase tracking-wider text-ink-500 dark:text-ink-400">
+            Velocidade padrão
+          </label>
+          <span id="rateValueLabel" class="font-mono text-xs tabular-nums">1.00×</span>
+        </div>
+        <input id="rateRange" type="range" min="0.5" max="1.3" step="0.05" value="1" class="w-full accent-vermilion-600 dark:accent-vermilion-400 cursor-pointer">
+      </div>
+
+      <!-- Backup JSON -->
+      <div class="pt-5 border-t border-paper-300 dark:border-ink-700 space-y-2.5">
+        <h3 class="font-mono text-[11px] uppercase tracking-wider text-ink-500 dark:text-ink-400">Portabilidade</h3>
+        <div class="grid grid-cols-2 gap-2.5">
+          <button id="btnExportJson" type="button"
+            class="px-4 py-2 rounded-lg text-xs font-medium border border-paper-300 dark:border-ink-700 hover:bg-paper-200 dark:hover:bg-ink-800 cursor-pointer">
+            Exportar JSON
+          </button>
+          <label class="px-4 py-2 rounded-lg text-xs font-medium text-center border border-paper-300 dark:border-ink-700 hover:bg-paper-200 dark:hover:bg-ink-800 cursor-pointer">
+            Importar JSON
+            <input id="inputImportJson" type="file" accept=".json" class="hidden">
+          </label>
+        </div>
+      </div>
+
+      <!-- Reset para apresentação -->
+      <div class="pt-5 border-t border-paper-300 dark:border-ink-700 space-y-2">
+        <h3 class="font-mono text-[11px] uppercase tracking-wider text-vermilion-600 dark:text-vermilion-400">Reiniciar estado</h3>
+        <button id="btnResetDemo" type="button"
+          class="w-full px-4 py-2 rounded-lg text-xs font-medium text-vermilion-600 dark:text-vermilion-400 border border-vermilion-600/35 dark:border-vermilion-400/35 hover:bg-vermilion-600/10 cursor-pointer">
+          Restaurar fichas iniciais e zerar progresso
+        </button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- =====================================================================
+       MODAL 5 (<dialog>): CONFIRMACAO CUSTOMIZADA (SUBSTITUI confirm() NATIVO)
+       ===================================================================== -->
+  <dialog id="confirmDialog" aria-labelledby="confirmTitle"
+    class="w-[92vw] max-w-sm rounded-xl bg-paper-50 dark:bg-ink-900 text-ink-950 dark:text-ink-100 border border-paper-300 dark:border-ink-700 p-6 shadow-2xl m-auto space-y-4">
+    <h2 id="confirmTitle" class="font-serif text-lg font-bold">Confirmar ação</h2>
+    <p id="confirmMessage" class="text-sm text-ink-500 dark:text-ink-400 leading-relaxed"></p>
+    <div class="flex justify-end gap-2 pt-2">
+      <button id="btnConfirmCancel" type="button"
+        class="px-4 py-2 rounded-lg text-xs font-medium border border-paper-300 dark:border-ink-700 hover:bg-paper-200 dark:hover:bg-ink-800 cursor-pointer">
+        Cancelar
+      </button>
+      <button id="btnConfirmOk" type="button"
+        class="px-4 py-2 rounded-lg text-xs font-medium bg-vermilion-600 hover:bg-vermilion-700 text-paper-50 cursor-pointer">
+        Confirmar
+      </button>
+    </div>
+  </dialog>
+
+  <!-- Notificação discreta acessível com aria-live="polite" -->
+  <div id="toastContainer" role="status" aria-live="polite"
+    class="fixed bottom-5 right-5 z-50 pointer-events-none flex flex-col gap-2 max-w-xs"></div>
+
+  <!-- =====================================================================
+       LOGICA DA APLICACAO (SM-2, WEB SPEECH API, CRUD, LOCALSTORAGE E UI)
+       ===================================================================== -->
+  <script>
+    (function () {
+      'use strict';
+
+      /* ===================================================================
+         1. CONSTANTES E ACERVO INICIAL CURADO (24 FICHAS + 33 LETRAS)
+         =================================================================== */
+      const STORAGE_KEY = 'slovoflow_ru_editorial_v2';
+
+      const DECKS = [
+        { id: 'survival', code: '01', name: 'Sobrevivência e Saudações' },
+        { id: 'verbs', code: '02', name: 'Verbos Essenciais' },
+        { id: 'travel', code: '03', name: 'Viagem e Mesa' },
+        { id: 'expressions', code: '04', name: 'Falsos Amigos e Expressões' }
+      ];
+
+      // 24 Flashcards linguisticamente revisados com acento tônico Unicode (\u0301)
+      const INITIAL_CARDS = [
+        // --- 01: SOBREVIVENCIA E SAUDACOES ---
+        {
+          id: 'c1', deckId: 'survival',
+          russian: 'Привет', russianStressed: 'Приве\u0301т',
+          translit: 'Privet', phoneticPt: 'privyét',
+          translation: 'Oi / Olá (informal)',
+          exampleRu: 'Привет, как у тебя дела?', exampleRuStressed: 'Приве\u0301т, как у тебя\u0301 дела\u0301?',
+          examplePt: 'Oi, como vão as coisas com você?',
+          grammarNote: 'Usado entre amigos, jovens e familiares. Em situações formais ou com desconhecidos, prefira "Здра\u0301вствуйте" (Zdrástvuite).'
+        },
+        {
+          id: 'c2', deckId: 'survival',
+          russian: 'Спасибо', russianStressed: 'Спаси\u0301бо',
+          translit: 'Spasibo', phoneticPt: 'spassíba',
+          translation: 'Obrigado(a)',
+          exampleRu: 'Большое спасибо за помощь!', exampleRuStressed: 'Большо\u0301е спаси\u0301бо за по\u0301мощь!',
+          examplePt: 'Muito obrigado pela ajuda!',
+          grammarNote: 'Em russo, o "о" fora da sílaba tônica soa como "a" (fenômeno chamado ákan\'e). Por isso o final soa "ba" e não "bo".'
+        },
+        {
+          id: 'c3', deckId: 'survival',
+          russian: 'Пожалуйста', russianStressed: 'Пожа\u0301луйста',
+          translit: 'Pozhaluysta', phoneticPt: 'pajálusta',
+          translation: 'Por favor / De nada',
+          exampleRu: 'Один кофе, пожалуйста.', exampleRuStressed: 'Оди\u0301н ко\u0301фе, пожа\u0301луйста.',
+          examplePt: 'Um café, por favor.',
+          grammarNote: 'Serve tanto para pedir algo ("por favor") quanto para responder a um agradecimento ("de nada"). O "й" quase some na fala rápida.'
+        },
+        {
+          id: 'c4', deckId: 'survival',
+          russian: 'Извините', russianStressed: 'Извини\u0301те',
+          translit: 'Izvinite', phoneticPt: 'izviníte',
+          translation: 'Com licença / Desculpe (formal)',
+          exampleRu: 'Извините, где находится метро?', exampleRuStressed: 'Извини\u0301те, где нахо\u0301дится метро\u0301?',
+          examplePt: 'Com licença, onde fica o metrô?',
+          grammarNote: 'Forma educada (tratamento formal "Вы" ou plural). Entre amigos íntimos, usa-se a forma curta "Извини\u0301".'
+        },
+        {
+          id: 'c5', deckId: 'survival',
+          russian: 'До свидания', russianStressed: 'До свида\u0301ния',
+          translit: 'Do svidaniya', phoneticPt: 'da svidániya',
+          translation: 'Até logo / Tchau (formal)',
+          exampleRu: 'До свидания, до завтра!', exampleRuStressed: 'До свида\u0301ния, до за\u0301втра!',
+          examplePt: 'Até logo, até amanhã!',
+          grammarNote: 'Literalmente significa "até o próximo encontro". A alternativa informal mais usada entre amigos é "Пока\u0301" (paká).'
+        },
+        {
+          id: 'c6', deckId: 'survival',
+          russian: 'Как дела?', russianStressed: 'Как дела\u0301?',
+          translit: 'Kak dela?', phoneticPt: 'kak dyelá?',
+          translation: 'Tudo bem? / Como vão as coisas?',
+          exampleRu: 'Привет, Анна! Как дела?', exampleRuStressed: 'Приве\u0301т, А\u0301нна! Как дела\u0301?',
+          examplePt: 'Oi, Anna! Tudo bem?',
+          grammarNote: 'Curiosidade cultural: na Rússia, essa pergunta é levada a sério — quem responde costuma contar de verdade como está o dia.'
+        },
+
+        // --- 02: VERBOS ESSENCIAIS ---
+        {
+          id: 'c7', deckId: 'verbs',
+          russian: 'Говорить', russianStressed: 'Говори\u0301ть',
+          translit: "Govorit'", phoneticPt: "gavarít'",
+          translation: 'Falar / Dizer',
+          exampleRu: 'Я немного говорю по-русски.', exampleRuStressed: 'Я немно\u0301го говорю\u0301 по-ру\u0301сски.',
+          examplePt: 'Eu falo um pouco de russo.',
+          grammarNote: 'Verbo da 2ª conjugação. O sinal brando "ь" no final suaviza (palataliza) o som do "т".'
+        },
+        {
+          id: 'c8', deckId: 'verbs',
+          russian: 'Знать', russianStressed: 'Знать',
+          translit: "Znat'", phoneticPt: "znat'",
+          translation: 'Saber / Conhecer',
+          exampleRu: 'Я не знаю ответ.', exampleRuStressed: 'Я не зна\u0301ю отве\u0301т.',
+          examplePt: 'Eu não sei a resposta.',
+          grammarNote: 'Para negar qualquer verbo em russo, basta colocar "не" imediatamente antes dele: "я не зна\u0301ю".'
+        },
+        {
+          id: 'c9', deckId: 'verbs',
+          russian: 'Понимать', russianStressed: 'Понима\u0301ть',
+          translit: "Ponimat'", phoneticPt: "panimát'",
+          translation: 'Entender / Compreender',
+          exampleRu: 'Я хорошо понимаю вас.', exampleRuStressed: 'Я хорошо\u0301 понима\u0301ю вас.',
+          examplePt: 'Eu entendo você bem.',
+          grammarNote: 'Frase salva-vidas para iniciantes: "Я не понима\u0301ю" (Ya nye panimáyu — Eu não entendo).'
+        },
+        {
+          id: 'c10', deckId: 'verbs',
+          russian: 'Хотеть', russianStressed: 'Хоте\u0301ть',
+          translit: "Khotet'", phoneticPt: "khatyét'",
+          translation: 'Querer',
+          exampleRu: 'Я хочу выучить русский язык.', exampleRuStressed: 'Я хочу\u0301 вы\u0301учить ру\u0301сский язы\u0301к.',
+          examplePt: 'Eu quero aprender a língua russa.',
+          grammarNote: 'Verbo misto irregular: no singular segue a 1ª conjugação (я хочу\u0301, ты хо\u0301чешь) e no plural a 2ª (мы хоти\u0301м).'
+        },
+        {
+          id: 'c11', deckId: 'verbs',
+          russian: 'Любить', russianStressed: 'Люби\u0301ть',
+          translit: "Lyubit'", phoneticPt: "liubít'",
+          translation: 'Amar / Gostar muito',
+          exampleRu: 'Я люблю слушать музыку.', exampleRuStressed: 'Я люблю\u0301 слу\u0301шать му\u0301зыку.',
+          examplePt: 'Eu amo ouvir música.',
+          grammarNote: 'Na 1ª pessoa do singular, ganha um "л" extra por regra fonética após a letra "б": "я люблю\u0301".'
+        },
+        {
+          id: 'c12', deckId: 'verbs',
+          russian: 'Работать', russianStressed: 'Рабо\u0301тать',
+          translit: "Rabotat'", phoneticPt: "rabótat'",
+          translation: 'Trabalhar / Funcionar',
+          exampleRu: 'Мой телефон не работает.', exampleRuStressed: 'Мой телефо\u0301н не рабо\u0301тает.',
+          examplePt: 'Meu telefone não está funcionando.',
+          grammarNote: 'Da raiz eslava "рабо\u0301та" (trabalho), a mesma raiz que deu origem à palavra internacional "robô".'
+        },
+
+        // --- 03: VIAGEM E MESA ---
+        {
+          id: 'c13', deckId: 'travel',
+          russian: 'Вода', russianStressed: 'Вода\u0301',
+          translit: 'Voda', phoneticPt: 'vadá',
+          translation: 'Água',
+          exampleRu: 'Можно стакан воды, пожалуйста?', exampleRuStressed: 'Мо\u0301жно стака\u0301н воды\u0301, пожа\u0301луйста?',
+          examplePt: 'Pode me dar um copo de água, por favor?',
+          grammarNote: 'Substantivo feminino (termina em -а). No exemplo, muda para "воды\u0301" (caso genitivo: "de água").'
+        },
+        {
+          id: 'c14', deckId: 'travel',
+          russian: 'Кофе', russianStressed: 'Ко\u0301фе',
+          translit: 'Kofe', phoneticPt: 'kófye',
+          translation: 'Café',
+          exampleRu: 'Утром я всегда пью кофе.', exampleRuStressed: 'У\u0301тром я всегда\u0301 пью ко\u0301фе.',
+          examplePt: 'De manhã eu sempre tomo café.',
+          grammarNote: 'Palavra estrangeira indeclinável: ao contrário da maioria dos substantivos russos, nunca muda de terminação nos 6 casos.'
+        },
+        {
+          id: 'c15', deckId: 'travel',
+          russian: 'Счёт', russianStressed: 'Счёт',
+          translit: 'Schyot', phoneticPt: 'shchót',
+          translation: 'A conta (restaurante)',
+          exampleRu: 'Принесите, пожалуйста, счёт.', exampleRuStressed: 'Принеси\u0301те, пожа\u0301луйста, счёт.',
+          examplePt: 'Traga a conta, por favor.',
+          grammarNote: 'Regra de ouro: a letra "ё" (yô) é sempre a sílaba tônica da palavra, dispensando acento adicional.'
+        },
+        {
+          id: 'c16', deckId: 'travel',
+          russian: 'Вокзал', russianStressed: 'Вокза\u0301л',
+          translit: 'Vokzal', phoneticPt: 'vagzál',
+          translation: 'Estação de trem',
+          exampleRu: 'Поезд прибывает на вокзал.', exampleRuStressed: 'По\u0301езд прибыва\u0301ет на вокза\u0301л.',
+          examplePt: 'O trem está chegando à estação.',
+          grammarNote: 'Por assimilação sonora, o "к" antes de "з" se pronuncia como "g", soando "vagzál".'
+        },
+        {
+          id: 'c17', deckId: 'travel',
+          russian: 'Вкусно', russianStressed: 'Вку\u0301сно',
+          translit: 'Vkusno', phoneticPt: 'vkúsna',
+          translation: 'Gostoso / Delicioso',
+          exampleRu: 'Этот борщ очень вкусный!', exampleRuStressed: 'Э\u0301тот борщ о\u0301чень вку\u0301сный!',
+          examplePt: 'Este borscht está muito gostoso!',
+          grammarNote: 'Dizer "О\u0301чень вку\u0301сно!" (Muito gostoso!) é o melhor elogio possível ao anfitrião após uma refeição.'
+        },
+        {
+          id: 'c18', deckId: 'travel',
+          russian: 'Помогите', russianStressed: 'Помоги\u0301те',
+          translit: 'Pomogite', phoneticPt: 'pamaguíte',
+          translation: 'Ajude-me! / Socorro!',
+          exampleRu: 'Помогите мне, пожалуйста!', exampleRuStressed: 'Помоги\u0301те мне, пожа\u0301луйста!',
+          examplePt: 'Ajude-me, por favor!',
+          grammarNote: 'Imperativo formal/plural do verbo "помо\u0301чь" (ajudar). Expressão essencial em viagens.'
+        },
+
+        // --- 04: FALSOS AMIGOS E EXPRESSOES ---
+        {
+          id: 'c19', deckId: 'expressions',
+          russian: 'Магазин', russianStressed: 'Магази\u0301н',
+          translit: 'Magazin', phoneticPt: 'magazín',
+          translation: 'Loja (não é revista)',
+          exampleRu: 'Я иду в продуктовый магазин.', exampleRuStressed: 'Я иду\u0301 в продукто\u0301вый магази\u0301н.',
+          examplePt: 'Estou indo ao mercado / loja de alimentos.',
+          grammarNote: 'Falso amigo famoso com o inglês "magazine". Em russo, revista se diz "журна\u0301л" (jurnál).'
+        },
+        {
+          id: 'c20', deckId: 'expressions',
+          russian: 'Фамилия', russianStressed: 'Фами\u0301лия',
+          translit: 'Familiya', phoneticPt: 'famíliya',
+          translation: 'Sobrenome (não é família)',
+          exampleRu: 'Как ваша фамилия?', exampleRuStressed: 'Как ва\u0301ша фами\u0301лия?',
+          examplePt: 'Qual é o seu sobrenome?',
+          grammarNote: 'Falso amigo clássico para brasileiros. Em russo, "família" se diz "семья\u0301" (syemyá).'
+        },
+        {
+          id: 'c21', deckId: 'expressions',
+          russian: 'Хорошо', russianStressed: 'Хорошо\u0301',
+          translit: 'Khorosho', phoneticPt: 'kharashó',
+          translation: 'Bem / Tudo certo / Combinado',
+          exampleRu: 'Хорошо, встретимся в пять.', exampleRuStressed: 'Хорошо\u0301, встре\u0301тимся в пять.',
+          examplePt: 'Combinado, nos encontramos às cinco.',
+          grammarNote: 'Os dois primeiros "о" são átonos e soam como "a", enquanto o último "о" é tônico: kha-ra-shó.'
+        },
+        {
+          id: 'c22', deckId: 'expressions',
+          russian: 'Конечно', russianStressed: 'Коне\u0301чно',
+          translit: 'Konechno', phoneticPt: 'kanyéshna',
+          translation: 'Claro / Com certeza',
+          exampleRu: 'Ты пойдёшь с нами? — Конечно!', exampleRuStressed: 'Ты пойдёшь с на\u0301ми? — Коне\u0301чно!',
+          examplePt: 'Você vai conosco? — Claro!',
+          grammarNote: 'Exceção de pronúncia clássica: o encontro "чн" aqui se pronuncia como "шн" (shn), e não "tchn".'
+        },
+        {
+          id: 'c23', deckId: 'expressions',
+          russian: 'Ничего', russianStressed: 'Ничего\u0301',
+          translit: 'Nichego', phoneticPt: 'nitchevó',
+          translation: 'Nada / Sem problema / Tudo bem',
+          exampleRu: 'Ничего страшного, бывает.', exampleRuStressed: 'Ничего\u0301 стра\u0301шного, быва\u0301ет.',
+          examplePt: 'Sem problema nenhum, acontece.',
+          grammarNote: 'Na terminação "-его/-ого" do caso genitivo, o "г" ganha som de "в" (v). Por isso se pronuncia "nitchevó".'
+        },
+        {
+          id: 'c24', deckId: 'expressions',
+          russian: 'Давай', russianStressed: 'Дава\u0301й',
+          translit: 'Davay', phoneticPt: 'davái',
+          translation: 'Vamos! / Bora! / Falou!',
+          exampleRu: 'Давай пойдём в кино сегодня!', exampleRuStressed: 'Дава\u0301й пойдём в кино\u0301 сего\u0301дня!',
+          examplePt: 'Bora ir ao cinema hoje!',
+          grammarNote: 'Expressão versátil do russo cotidiano: serve para convidar ("bora"), incentivar ("vai") e até encerrar ligações ("falou").'
+        }
+      ];
+
+      // Todas as 33 letras oficiais do alfabeto cirílico russo
+      const CYRILLIC_ALPHABET = [
+        { char: 'А а', sound: 'a', type: 'same', example: 'Арбу\u0301з', meaning: 'melancia', speak: 'А. Арбуз' },
+        { char: 'Б б', sound: 'b', type: 'unique', example: 'Брат', meaning: 'irmão', speak: 'Бэ. Брат' },
+        { char: 'В в', sound: 'v (lembra B)', type: 'false', example: 'Вода\u0301', meaning: 'água', speak: 'Вэ. Вода' },
+        { char: 'Г г', sound: 'g (gato)', type: 'unique', example: 'Го\u0301род', meaning: 'cidade', speak: 'Гэ. Город' },
+        { char: 'Д д', sound: 'd', type: 'unique', example: 'Дом', meaning: 'casa', speak: 'Дэ. Дом' },
+        { char: 'Е е', sound: 'iê / ye', type: 'false', example: 'Еда\u0301', meaning: 'comida', speak: 'Е. Еда' },
+        { char: 'Ё ё', sound: 'iô (sempre tônica)', type: 'unique', example: 'Ёжик', meaning: 'ouriço', speak: 'Ё. Ёжик' },
+        { char: 'Ж ж', sound: 'j (janela)', type: 'unique', example: 'Жизнь', meaning: 'vida', speak: 'Жэ. Жизнь' },
+        { char: 'З з', sound: 'z (lembra 3)', type: 'unique', example: 'Зима\u0301', meaning: 'inverno', speak: 'Зэ. Зима' },
+        { char: 'И и', sound: 'i', type: 'unique', example: 'И\u0301мя', meaning: 'nome', speak: 'И. Имя' },
+        { char: 'Й й', sound: 'i breve', type: 'unique', example: 'Йо\u0301гурт', meaning: 'iogurte', speak: 'И краткое. Йогурт' },
+        { char: 'К к', sound: 'k', type: 'same', example: 'Ко\u0301фе', meaning: 'café', speak: 'Ка. Кофе' },
+        { char: 'Л л', sound: 'l', type: 'unique', example: 'Ле\u0301то', meaning: 'verão', speak: 'Эль. Лето' },
+        { char: 'М м', sound: 'm', type: 'same', example: 'Ма\u0301ма', meaning: 'mamãe', speak: 'Эм. Мама' },
+        { char: 'Н н', sound: 'n (lembra H)', type: 'false', example: 'Ночь', meaning: 'noite', speak: 'Эн. Ночь' },
+        { char: 'О о', sound: 'ô tônico / a átono', type: 'same', example: 'Окно\u0301', meaning: 'janela', speak: 'О. Окно' },
+        { char: 'П п', sound: 'p (lembra π)', type: 'unique', example: 'Приве\u0301т', meaning: 'oi', speak: 'Пэ. Привет' },
+        { char: 'Р р', sound: 'r vibrante (lembra P)', type: 'false', example: 'Рука\u0301', meaning: 'mão', speak: 'Эр. Рука' },
+        { char: 'С с', sound: 's / ss (lembra C)', type: 'false', example: 'Со\u0301лнце', meaning: 'sol', speak: 'Эс. Солнце' },
+        { char: 'Т т', sound: 't', type: 'same', example: 'Такси\u0301', meaning: 'táxi', speak: 'Тэ. Такси' },
+        { char: 'У у', sound: 'u (lembra Y)', type: 'false', example: 'У\u0301тро', meaning: 'manhã', speak: 'У. Утро' },
+        { char: 'Ф ф', sound: 'f', type: 'unique', example: 'Фо\u0301то', meaning: 'foto', speak: 'Эф. Фото' },
+        { char: 'Х х', sound: 'rr forte (lembra X)', type: 'false', example: 'Хлеб', meaning: 'pão', speak: 'Ха. Хлеб' },
+        { char: 'Ц ц', sound: 'ts (pizza)', type: 'unique', example: 'Центр', meaning: 'centro', speak: 'Цэ. Центр' },
+        { char: 'Ч ч', sound: 'tch (tchau)', type: 'unique', example: 'Чай', meaning: 'chá', speak: 'Че. Чай' },
+        { char: 'Ш ш', sound: 'ch (chuva)', type: 'unique', example: 'Шко\u0301ла', meaning: 'escola', speak: 'Ша. Школа' },
+        { char: 'Щ щ', sound: 'ch suave longo', type: 'unique', example: 'Щу\u0301ка', meaning: 'peixe lúcio', speak: 'Ща. Щука' },
+        { char: 'Ъ ъ', sound: 'sinal duro (separa)', type: 'unique', example: 'Объе\u0301кт', meaning: 'objeto', speak: 'Твёрдый знак. Объект' },
+        { char: 'Ы ы', sound: 'i gutural', type: 'unique', example: 'Сыр', meaning: 'queijo', speak: 'Ы. Сыр' },
+        { char: 'Ь ь', sound: 'sinal brando (suaviza)', type: 'unique', example: 'Мать', meaning: 'mãe', speak: 'Мягкий знак. Мать' },
+        { char: 'Э э', sound: 'é aberto', type: 'unique', example: 'Э\u0301хо', meaning: 'eco', speak: 'Э. Эхо' },
+        { char: 'Ю ю', sound: 'iu / yu', type: 'unique', example: 'Юг', meaning: 'sul', speak: 'Ю. Юг' },
+        { char: 'Я я', sound: 'ia / ya', type: 'unique', example: 'Я\u0301блоко', meaning: 'maçã', speak: 'Я. Яблоко' }
+      ];
+
+      const KEYBOARD_CHARS = 'абвгдеёжзийклмнопрстуфхцчшщъыьэюя'.split('');
+
+      /* ===================================================================
+         2. UTILITARIOS (SANITIZACAO DE ACENTO TONICO, NORMALIZACAO E DATAS)
+         =================================================================== */
+
+      /**
+       * Remove o caractere Unicode de acento tônico (\u0301) antes de enviar
+       * o texto para a Web Speech API, evitando que o TTS quebre ou soletre a palavra.
+       */
+      function stripStressMarks(text) {
+        return String(text || '').replace(/\u0301/g, '');
+      }
+
+      function normalizeRussian(text) {
+        return stripStressMarks(text)
+          .toLowerCase()
+          .replace(/[?!.,]/g, '')
+          .replace(/\s+/g, ' ')
+          .trim();
+      }
+
+      function formatInterval(days) {
+        if (days === 0) return '< 1 min';
+        if (days < 1) return `${Math.round(days * 24)} h`;
+        if (days === 1) return '1 dia';
+        if (days < 30) return `${Math.round(days)} dias`;
+        const months = (days / 30).toFixed(1).replace('.0', '');
+        return `${months} ${months === '1' ? 'mês' : 'meses'}`;
+      }
+
+      function getTodayKey() {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      }
+
+      /* ===================================================================
+         3. ESTADO GLOBAL E PERSISTENCIA SEGURA (LOCALSTORAGE COM TRY/CATCH)
+         =================================================================== */
+
+      function createDefaultState() {
+        const now = Date.now();
+        return {
+          cards: INITIAL_CARDS.map((c) => ({
+            ...c,
+            repetitions: 0,
+            interval: 0,
+            easeFactor: 2.5,
+            dueDate: now,
+            lapses: 0
+          })),
+          settings: {
+            theme: 'light', // Papel editorial quente como padrão
+            showStress: true,
+            showTranslit: true,
+            autoPlay: false,
+            dictationMode: false,
+            ttsMode: 'auto', // 'auto' | 'online' | 'native'
+            speechRate: 1.0,
+            preferredVoiceURI: '',
+            dailyGoal: 20
+          },
+          stats: {
+            todayKey: getTodayKey(),
+            todayReviewed: 0,
+            streak: 1,
+            lastStudyDay: getTodayKey()
+          }
+        };
+      }
+
+      function loadState() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return createDefaultState();
+          const parsed = JSON.parse(raw);
+          if (!parsed || !Array.isArray(parsed.cards) || !parsed.settings) {
+            return createDefaultState();
+          }
+          // Garante compatibilidade com backups antigos que ainda não tinham ttsMode
+          if (!parsed.settings.ttsMode) {
+            parsed.settings.ttsMode = 'auto';
+          }
+          const today = getTodayKey();
+          if (!parsed.stats) {
+            parsed.stats = { todayKey: today, todayReviewed: 0, streak: 1, lastStudyDay: today };
+          } else if (parsed.stats.todayKey !== today) {
+            parsed.stats.todayKey = today;
+            parsed.stats.todayReviewed = 0;
+          }
+          return parsed;
+        } catch (err) {
+          console.warn('Falha ao ler localStorage, carregando estado padrão:', err);
+          return createDefaultState();
+        }
+      }
+
+      function saveState() {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        } catch (err) {
+          console.warn('Não foi possível salvar no localStorage:', err);
+        }
+      }
+
+      let state = loadState();
+      let activeDeckId = 'all';
+      let freePracticeMode = false;
+      let sessionQueue = [];
+      let sessionTotalInitial = 0;
+      let sessionCompleted = 0;
+      let currentCard = null;
+      let isFlipped = false;
+      let lastFocusedRussianInput = null;
+
+      /* ===================================================================
+         4. ALGORITMO DE REPETICAO ESPACADA SM-2 (SUPERMEMO 2)
+         =================================================================== */
+
+      function calculateSM2(card, quality) {
+        let { repetitions, interval, easeFactor, lapses } = card;
+        const now = Date.now();
+        const DAY_MS = 24 * 60 * 60 * 1000;
+
+        if (quality === 1) {
+          repetitions = 0;
+          interval = 0;
+          lapses = (lapses || 0) + 1;
+          easeFactor = Math.max(1.3, +(easeFactor - 0.2).toFixed(2));
+          return { repetitions, interval, easeFactor, lapses, dueDate: now };
+        }
+
+        if (quality === 2) {
+          easeFactor = Math.max(1.3, +(easeFactor - 0.15).toFixed(2));
+          interval = repetitions === 0 ? 0.5 : Math.max(1, +(interval * 1.2).toFixed(1));
+          repetitions += 1;
+        } else if (quality === 3) {
+          if (repetitions === 0) interval = 1;
+          else if (repetitions === 1) interval = 6;
+          else interval = Math.round(interval * easeFactor);
+          repetitions += 1;
+        } else if (quality === 4) {
+          easeFactor = +(easeFactor + 0.15).toFixed(2);
+          if (repetitions === 0) interval = 4;
+          else if (repetitions === 1) interval = 8;
+          else interval = Math.round(interval * easeFactor * 1.3);
+          repetitions += 1;
+        }
+
+        const dueDate = now + Math.round(interval * DAY_MS);
+        return { repetitions, interval, easeFactor, lapses, dueDate };
+      }
+
+      /* ===================================================================
+         5. MOTOR DE SINTESE DE VOZ EM RUSSO (WEB SPEECH API + FALLBACK ONLINE)
+         =================================================================== */
+
+      let availableVoices = [];
+      let russianVoices = [];
+      let activeSpeakingButton = null;
+      let currentOnlineAudio = null;
+
+      function stopAllAudio() {
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+        }
+        if (currentOnlineAudio) {
+          currentOnlineAudio.pause();
+          currentOnlineAudio.currentTime = 0;
+          currentOnlineAudio = null;
+        }
+        if (activeSpeakingButton) {
+          activeSpeakingButton.classList.remove('speaking');
+          activeSpeakingButton = null;
+        }
+      }
+
+      function shouldUseOnlineTts() {
+        const mode = state.settings.ttsMode || 'auto';
+        if (mode === 'online') return true;
+        if (mode === 'native') return false;
+        // Modo 'auto': usa voz nativa russa se existir; caso contrário, ativa TTS online gratuito
+        return russianVoices.length === 0;
+      }
+
+      function loadVoices() {
+        if ('speechSynthesis' in window) {
+          availableVoices = window.speechSynthesis.getVoices() || [];
+          russianVoices = availableVoices.filter((v) => /^ru\b/i.test(v.lang));
+        } else {
+          availableVoices = [];
+          russianVoices = [];
+        }
+
+        populateVoiceSelect();
+        updateTtsStatusUI();
+      }
+
+      function getSelectedVoice() {
+        if (state.settings.preferredVoiceURI) {
+          const found = availableVoices.find((v) => v.voiceURI === state.settings.preferredVoiceURI);
+          if (found) return found;
+        }
+        if (russianVoices.length > 0) {
+          const preferred = russianVoices.find((v) => /natural|google|irina|dmitry|svetlana|milena/i.test(v.name));
+          return preferred || russianVoices[0];
+        }
+        return null;
+      }
+
+      function populateVoiceSelect() {
+        const select = document.getElementById('voiceSelect');
+        select.innerHTML = '';
+
+        const list = russianVoices.length > 0 ? russianVoices : availableVoices;
+        if (list.length === 0) {
+          const opt = document.createElement('option');
+          opt.value = '';
+          opt.textContent = 'Sem voz local ru-RU (usando TTS online)';
+          select.appendChild(opt);
+          return;
+        }
+
+        const currentVoice = getSelectedVoice();
+        list.forEach((v) => {
+          const opt = document.createElement('option');
+          opt.value = v.voiceURI;
+          opt.textContent = `${v.name} (${v.lang})`;
+          if (currentVoice && v.voiceURI === currentVoice.voiceURI) {
+            opt.selected = true;
+          }
+          select.appendChild(opt);
+        });
+      }
+
+      function updateTtsStatusUI() {
+        const pill = document.getElementById('ttsStatusPill');
+        const banner = document.getElementById('ttsWarningBanner');
+        const voice = getSelectedVoice();
+        const usingOnline = shouldUseOnlineTts();
+
+        if (usingOnline) {
+          pill.className = 'inline-flex items-center gap-1.5 text-prussian-700 dark:text-prussian-400';
+          pill.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-prussian-700 dark:bg-prussian-400"></span><span>Online (ru-RU)</span>';
+          banner.classList.add('hidden');
+        } else if (russianVoices.length > 0 && voice) {
+          pill.className = 'inline-flex items-center gap-1.5 text-pine-700 dark:text-pine-400';
+          const shortName = voice.name.replace(/Microsoft |Google |Online \(Natural\) /gi, '').slice(0, 16);
+          pill.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-pine-700 dark:bg-pine-400"></span><span></span>';
+          pill.querySelector('span:last-child').textContent = shortName;
+          banner.classList.add('hidden');
+        } else {
+          pill.className = 'inline-flex items-center gap-1.5 text-ochre-700 dark:text-ochre-400';
+          pill.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-ochre-700 dark:bg-ochre-400"></span><span>Sem ru-RU</span>';
+          banner.classList.remove('hidden');
+        }
+      }
+
+      /**
+       * Reproduz áudio em russo via endpoints públicos gratuitos (sem chave de API):
+       * 1) Google Translate TTS (gtx)
+       * 2) Google Translate TTS (tw-ob)
+       * 3) Youdao Dictionary TTS (le=ru)
+       * 4) StreamElements Polly (voz russa Tatyana)
+       * 5) Último recurso: Web Speech API local
+       */
+      function speakOnlineRussian(cleanText, rate, triggerEl) {
+        const encoded = encodeURIComponent(cleanText.slice(0, 180));
+        const urls = [
+          `https://translate.googleapis.com/translate_tts?client=gtx&ie=UTF-8&tl=ru&q=${encoded}`,
+          `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=ru&q=${encoded}`,
+          `https://dict.youdao.com/dictvoice?audio=${encoded}&le=ru`,
+          `https://api.streamelements.com/kappa/v2/speech?voice=Tatyana&text=${encoded}`
+        ];
+
+        function tryProvider(index) {
+          if (index >= urls.length) {
+            if (triggerEl) triggerEl.classList.remove('speaking');
+            if (activeSpeakingButton === triggerEl) activeSpeakingButton = null;
+            // Se todos os provedores online falharem (ex.: PC offline), tenta a Web Speech API
+            if ('speechSynthesis' in window) {
+              speakNativeRussian(cleanText, rate, triggerEl);
+            } else {
+              document.getElementById('ttsWarningBanner').classList.remove('hidden');
+              showToast('Sem conexão para o áudio online.', 'error');
+            }
+            return;
+          }
+
+          let settled = false;
+          const audio = new Audio(urls[index]);
+          audio.playbackRate = Math.min(1.5, Math.max(0.5, rate));
+          currentOnlineAudio = audio;
+
+          const fallbackTimeout = setTimeout(() => {
+            if (!settled && audio.readyState < 2) {
+              settled = true;
+              audio.pause();
+              if (currentOnlineAudio === audio) currentOnlineAudio = null;
+              tryProvider(index + 1);
+            }
+          }, 4000);
+
+          const failAndNext = () => {
+            if (settled) return;
+            settled = true;
+            clearTimeout(fallbackTimeout);
+            if (currentOnlineAudio === audio) currentOnlineAudio = null;
+            tryProvider(index + 1);
+          };
+
+          audio.onplaying = () => {
+            clearTimeout(fallbackTimeout);
+          };
+
+          audio.onended = () => {
+            settled = true;
+            clearTimeout(fallbackTimeout);
+            if (currentOnlineAudio === audio) currentOnlineAudio = null;
+            if (triggerEl) triggerEl.classList.remove('speaking');
+            if (activeSpeakingButton === triggerEl) activeSpeakingButton = null;
+          };
+
+          audio.onerror = failAndNext;
+
+          const playPromise = audio.play();
+          if (playPromise && typeof playPromise.catch === 'function') {
+            playPromise.catch(failAndNext);
+          }
+        }
+
+        if (triggerEl) {
+          activeSpeakingButton = triggerEl;
+          triggerEl.classList.add('speaking');
+        }
+        tryProvider(0);
+      }
+
+      function speakNativeRussian(cleanText, rate, triggerEl) {
+        if (!('speechSynthesis' in window)) {
+          showToast('Navegador sem suporte à Web Speech API.', 'error');
+          return;
+        }
+
+        const utterance = new SpeechSynthesisUtterance(cleanText);
+        utterance.lang = 'ru-RU';
+        utterance.rate = rate;
+
+        const voice = getSelectedVoice();
+        if (voice) utterance.voice = voice;
+
+        if (triggerEl) {
+          activeSpeakingButton = triggerEl;
+          triggerEl.classList.add('speaking');
+        }
+
+        utterance.onend = () => {
+          if (triggerEl) triggerEl.classList.remove('speaking');
+          if (activeSpeakingButton === triggerEl) activeSpeakingButton = null;
+        };
+
+        utterance.onerror = () => {
+          if (triggerEl) triggerEl.classList.remove('speaking');
+          if (activeSpeakingButton === triggerEl) activeSpeakingButton = null;
+        };
+
+        window.speechSynthesis.speak(utterance);
+        // Contorna um bug conhecido do Chrome onde speechSynthesis fica pausado em silêncio
+        if (window.speechSynthesis.paused) {
+          window.speechSynthesis.resume();
+        }
+      }
+
+      function speakRussian(rawText, customRate = null, triggerEl = null) {
+        const cleanText = stripStressMarks(rawText).trim();
+        if (!cleanText) return;
+
+        stopAllAudio();
+        const rate = customRate !== null ? customRate : (state.settings.speechRate || 1.0);
+
+        if (shouldUseOnlineTts()) {
+          speakOnlineRussian(cleanText, rate, triggerEl);
+        } else {
+          speakNativeRussian(cleanText, rate, triggerEl);
+        }
+      }
+
+      /* ===================================================================
+         6. GERENCIAMENTO DE FILA E RENDERIZACAO EDITORIAL
+         =================================================================== */
+
+      function getDeckCards(deckId) {
+        if (deckId === 'all') return state.cards;
+        return state.cards.filter((c) => c.deckId === deckId);
+      }
+
+      function buildQueue(deckId = activeDeckId, practiceAll = false) {
+        activeDeckId = deckId;
+        freePracticeMode = practiceAll;
+        const now = Date.now();
+        const pool = getDeckCards(deckId);
+
+        let queue;
+        if (practiceAll) {
+          queue = [...pool].sort(() => Math.random() - 0.5);
+        } else {
+          const dueReviews = pool.filter((c) => c.repetitions > 0 && c.dueDate <= now);
+          const newCards = pool.filter((c) => c.repetitions === 0 && c.dueDate <= now);
+          dueReviews.sort((a, b) => a.dueDate - b.dueDate);
+          queue = [...dueReviews, ...newCards];
+        }
+
+        sessionQueue = queue;
+        sessionTotalInitial = queue.length;
+        sessionCompleted = 0;
+
+        renderDecks();
+        loadNextCard();
+      }
+
+      function loadNextCard() {
+        isFlipped = false;
+        document.getElementById('flashcardInner').classList.remove('is-flipped');
+
+        const studyStage = document.getElementById('studyStage');
+        const completeStage = document.getElementById('sessionCompleteStage');
+        const deckTitleEl = document.getElementById('activeDeckTitle');
+        const modeBadge = document.getElementById('sessionModeBadge');
+
+        const deckObj = DECKS.find((d) => d.id === activeDeckId);
+        deckTitleEl.textContent = deckObj ? deckObj.name : 'Todos os cadernos';
+        modeBadge.textContent = freePracticeMode
+          ? 'Prática livre · sem alterar agenda SM-2'
+          : 'Repetição espaçada · SM-2';
+
+        updateSessionProgress();
+
+        if (sessionQueue.length === 0) {
+          currentCard = null;
+          studyStage.classList.add('hidden');
+          completeStage.classList.remove('hidden');
+          document.getElementById('btnEditCurrentCard').classList.add('hidden');
+          return;
+        }
+
+        studyStage.classList.remove('hidden');
+        completeStage.classList.add('hidden');
+        document.getElementById('btnEditCurrentCard').classList.remove('hidden');
+
+        currentCard = sessionQueue[0];
+        renderCurrentCard();
+
+        if (state.settings.autoPlay) {
+          setTimeout(() => {
+            if (currentCard) speakRussian(currentCard.russian, null, document.getElementById('btnSpeakNormal'));
+          }, 260);
+        }
+      }
+
+      function renderCurrentCard() {
+        if (!currentCard) return;
+
+        const showStress = state.settings.showStress;
+        const showTranslit = state.settings.showTranslit;
+        const deckObj = DECKS.find((d) => d.id === currentCard.deckId);
+
+        const displayRu = showStress && currentCard.russianStressed ? currentCard.russianStressed : currentCard.russian;
+        const displayExRu = showStress && currentCard.exampleRuStressed ? currentCard.exampleRuStressed : (currentCard.exampleRu || '');
+
+        const cardIdx = state.cards.findIndex((c) => c.id === currentCard.id) + 1;
+        const catalogNum = String(cardIdx).padStart(2, '0');
+
+        // Frente (sempre via textContent contra XSS)
+        document.getElementById('frontDeckChip').textContent = deckObj
+          ? `${deckObj.code} · ${deckObj.name} · № ${catalogNum}`
+          : `Personalizado · № ${catalogNum}`;
+
+        const statusChip = document.getElementById('frontStatusChip');
+        if (currentCard.repetitions === 0 && currentCard.lapses === 0) {
+          statusChip.textContent = 'Nova ficha';
+        } else if (currentCard.lapses > 0 && currentCard.repetitions === 0) {
+          statusChip.textContent = 'Reaprendendo';
+        } else {
+          statusChip.textContent = `Revisão #${currentCard.repetitions}`;
+        }
+
+        document.getElementById('frontRussianWord').textContent = displayRu;
+        document.getElementById('frontTranslit').textContent = currentCard.translit || '—';
+        document.getElementById('frontPhoneticPt').textContent = currentCard.phoneticPt || '—';
+        document.getElementById('frontPhoneticBox').classList.toggle('hidden', !showTranslit);
+
+        // Modo Ditado
+        document.getElementById('dictationPanel').classList.toggle('hidden', !state.settings.dictationMode);
+        document.getElementById('dictationInput').value = '';
+        document.getElementById('dictationFeedback').textContent = '';
+
+        // Verso
+        document.getElementById('backRussianSmall').textContent = displayRu;
+        document.getElementById('backTranslation').textContent = currentCard.translation;
+        document.getElementById('backExampleRu').textContent = displayExRu || 'Sem frase de exemplo cadastrada.';
+        document.getElementById('backExamplePt').textContent = currentCard.examplePt || '';
+        document.getElementById('btnSpeakExample').classList.toggle('hidden', !currentCard.exampleRu);
+
+        document.getElementById('backGrammarNote').textContent =
+          currentCard.grammarNote || 'Nenhuma nota linguística registrada para este termo.';
+
+        // Metadados SM-2 + tag <time>
+        document.getElementById('metaEase').textContent = Number(currentCard.easeFactor || 2.5).toFixed(2);
+        document.getElementById('metaReps').textContent = String(currentCard.repetitions || 0);
+        const dueDateObj = new Date(currentCard.dueDate || Date.now());
+        const timeEl = document.getElementById('metaDueTime');
+        timeEl.setAttribute('datetime', dueDateObj.toISOString());
+        timeEl.textContent = currentCard.dueDate <= Date.now()
+          ? 'Agora'
+          : dueDateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+
+        // Intervalos previstos nos 4 botões SM-2
+        [1, 2, 3, 4].forEach((q) => {
+          const preview = calculateSM2(currentCard, q);
+          document.getElementById(`previewInt${q}`).textContent = formatInterval(preview.interval);
+        });
+
+        updateRatingBarState();
+      }
+
+      function setFlipped(flipped) {
+        if (!currentCard) return;
+        isFlipped = flipped;
+        document.getElementById('flashcardInner').classList.toggle('is-flipped', isFlipped);
+        updateRatingBarState();
+      }
+
+      function updateRatingBarState() {
+        const bar = document.getElementById('ratingBar');
+        const hint = document.getElementById('ratingHint');
+        if (isFlipped) {
+          bar.classList.remove('opacity-40', 'pointer-events-none');
+          hint.textContent = 'Registre o nível de lembrança para agendar a próxima revisão';
+        } else {
+          bar.classList.add('opacity-40', 'pointer-events-none');
+          hint.textContent = 'Vire a ficha para registrar sua lembrança';
+        }
+      }
+
+      function rateCurrentCard(quality) {
+        if (!currentCard || !isFlipped) return;
+
+        sessionQueue.shift();
+
+        if (!freePracticeMode) {
+          const updated = calculateSM2(currentCard, quality);
+          Object.assign(currentCard, updated);
+
+          if (quality === 1) {
+            const insertIdx = Math.min(2, sessionQueue.length);
+            sessionQueue.splice(insertIdx, 0, currentCard);
+            showToast('Ficha recolocada na fila para reforço imediato.', 'info');
+          } else {
+            sessionCompleted += 1;
+          }
+
+          state.stats.todayReviewed += 1;
+          state.stats.lastStudyDay = getTodayKey();
+          saveState();
+        } else {
+          if (quality === 1) sessionQueue.push(currentCard);
+          else sessionCompleted += 1;
+        }
+
+        renderStats();
+        renderDecks();
+        loadNextCard();
+      }
+
+      function updateSessionProgress() {
+        const prog = document.getElementById('sessionProgress');
+        const counter = document.getElementById('sessionCounter');
+        const total = Math.max(1, sessionTotalInitial);
+        prog.max = total;
+        prog.value = Math.min(sessionCompleted, total);
+        counter.textContent = `Restantes: ${sessionQueue.length}`;
+      }
+
+      function renderStats() {
+        const { todayReviewed, streak } = state.stats;
+        const goal = state.settings.dailyGoal || 20;
+        document.getElementById('todayReviewedCount').textContent = String(todayReviewed);
+        document.getElementById('dailyGoalLabel').textContent = String(goal);
+        document.getElementById('streakCount').textContent = String(streak);
+        document.getElementById('totalCardsBadge').textContent = `${state.cards.length} fichas`;
+
+        const dailyProg = document.getElementById('dailyProgress');
+        dailyProg.max = goal;
+        dailyProg.value = Math.min(todayReviewed, goal);
+      }
+
+      function renderDecks() {
+        const container = document.getElementById('deckList');
+        container.innerHTML = '';
+        const now = Date.now();
+
+        const items = [
+          { id: 'all', code: '00', name: 'Todos os cadernos' },
+          ...DECKS
+        ];
+
+        items.forEach((deck) => {
+          const cards = getDeckCards(deck.id);
+          const dueCount = cards.filter((c) => c.dueDate <= now).length;
+          const masteredCount = cards.filter((c) => c.repetitions >= 2).length;
+          const masteryRatio = cards.length > 0 ? Math.round((masteredCount / cards.length) * 100) : 0;
+          const isActive = activeDeckId === deck.id;
+
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.setAttribute('role', 'listitem');
+          btn.className = `w-full text-left px-3 py-2.5 rounded-lg border-l-2 transition cursor-pointer ${
+            isActive
+              ? 'bg-paper-200/90 dark:bg-ink-800 border-l-vermilion-600 dark:border-l-vermilion-400'
+              : 'border-l-transparent hover:bg-paper-200/50 dark:hover:bg-ink-900'
+          }`;
+
+          const topRow = document.createElement('div');
+          topRow.className = 'flex items-baseline justify-between gap-2 mb-1.5';
+
+          const leftWrap = document.createElement('span');
+          leftWrap.className = 'flex items-baseline gap-2 min-w-0';
+
+          const codeSpan = document.createElement('span');
+          codeSpan.className = 'font-mono text-[10px] text-ink-400 shrink-0';
+          codeSpan.textContent = deck.code;
+
+          const titleSpan = document.createElement('span');
+          titleSpan.className = `text-sm truncate ${isActive ? 'font-semibold text-ink-950 dark:text-ink-100' : 'font-medium text-ink-950/80 dark:text-ink-100/80'}`;
+          titleSpan.textContent = deck.name;
+
+          leftWrap.appendChild(codeSpan);
+          leftWrap.appendChild(titleSpan);
+
+          const countSpan = document.createElement('span');
+          countSpan.className = `shrink-0 font-mono text-[11px] tabular-nums ${
+            dueCount > 0 ? 'text-vermilion-600 dark:text-vermilion-400 font-semibold' : 'text-pine-700 dark:text-pine-400'
+          }`;
+          countSpan.textContent = dueCount > 0 ? String(dueCount) : 'ok';
+
+          topRow.appendChild(leftWrap);
+          topRow.appendChild(countSpan);
+
+          // Tag nativa <meter> representando o domínio do caderno
+          const meterRow = document.createElement('div');
+          meterRow.className = 'flex items-center gap-2 pl-5';
+
+          const meter = document.createElement('meter');
+          meter.min = 0;
+          meter.max = 100;
+          meter.low = 35;
+          meter.high = 75;
+          meter.optimum = 100;
+          meter.value = masteryRatio;
+          meter.className = 'flex-1 h-1';
+          meter.setAttribute('aria-label', `Domínio de ${deck.name}: ${masteryRatio}%`);
+
+          const pctLabel = document.createElement('span');
+          pctLabel.className = 'font-mono text-[10px] text-ink-400 w-7 text-right tabular-nums';
+          pctLabel.textContent = `${masteryRatio}%`;
+
+          meterRow.appendChild(meter);
+          meterRow.appendChild(pctLabel);
+
+          btn.appendChild(topRow);
+          btn.appendChild(meterRow);
+
+          btn.addEventListener('click', () => buildQueue(deck.id, false));
+          container.appendChild(btn);
+        });
+      }
+
+      /* ===================================================================
+         7. ESPECIME DO ALFABETO CIRILICO (33 LETRAS) E TECLADO VIRTUAL
+         =================================================================== */
+
+      function renderAlphabetGrid() {
+        const grid = document.getElementById('alphabetGrid');
+        grid.innerHTML = '';
+
+        const accentBorders = {
+          same: 'border-t-pine-700 dark:border-t-pine-400',
+          false: 'border-t-vermilion-600 dark:border-t-vermilion-400',
+          unique: 'border-t-prussian-700 dark:border-t-prussian-400'
+        };
+
+        CYRILLIC_ALPHABET.forEach((item) => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = `p-3 rounded-lg bg-paper-100/70 hover:bg-paper-200/80 dark:bg-ink-950/60 dark:hover:bg-ink-800 border border-paper-300 dark:border-ink-700 border-t-2 ${accentBorders[item.type]} text-left transition active:scale-[0.98] cursor-pointer flex flex-col justify-between gap-1.5`;
+
+          const top = document.createElement('div');
+          top.className = 'flex items-baseline justify-between gap-1';
+
+          const letterEl = document.createElement('span');
+          letterEl.lang = 'ru';
+          letterEl.className = 'font-serif text-2xl font-bold text-ink-950 dark:text-ink-100';
+          letterEl.textContent = item.char;
+
+          const playHint = document.createElement('span');
+          playHint.className = 'font-mono text-[10px] uppercase text-ink-400';
+          playHint.textContent = 'ouvir';
+
+          top.appendChild(letterEl);
+          top.appendChild(playHint);
+
+          const soundEl = document.createElement('span');
+          soundEl.className = 'font-mono text-[11px] font-medium text-ink-950/85 dark:text-ink-100/85';
+          soundEl.textContent = item.sound;
+
+          const exEl = document.createElement('span');
+          exEl.className = 'text-[11px] text-ink-500 dark:text-ink-400 pt-1 border-t border-paper-200 dark:border-ink-800';
+          const exRu = document.createElement('strong');
+          exRu.lang = 'ru';
+          exRu.className = 'font-serif font-bold text-ink-950 dark:text-ink-100';
+          exRu.textContent = item.example;
+          exEl.appendChild(exRu);
+          exEl.appendChild(document.createTextNode(` · ${item.meaning}`));
+
+          btn.appendChild(top);
+          btn.appendChild(soundEl);
+          btn.appendChild(exEl);
+
+          btn.addEventListener('click', () => speakRussian(item.speak, 0.9, btn));
+          grid.appendChild(btn);
+        });
+      }
+
+      function renderVirtualKeyboard() {
+        const kb = document.getElementById('virtualKeyboard');
+        kb.innerHTML = '';
+
+        const keys = [...KEYBOARD_CHARS, '\u0301'];
+        keys.forEach((ch) => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.lang = 'ru';
+          btn.className = 'min-w-[30px] px-2 py-1 rounded text-xs font-serif font-bold bg-paper-50 dark:bg-ink-900 hover:bg-paper-200 dark:hover:bg-ink-700 border border-paper-300 dark:border-ink-700 transition cursor-pointer';
+          btn.textContent = ch === '\u0301' ? '´ tônica' : ch;
+          btn.title = ch === '\u0301' ? 'Inserir acento tônico na vogal anterior' : `Inserir letra ${ch}`;
+
+          btn.addEventListener('click', () => {
+            const target = lastFocusedRussianInput || document.getElementById('fieldRussian');
+            const start = target.selectionStart || target.value.length;
+            const end = target.selectionEnd || target.value.length;
+            target.value = target.value.slice(0, start) + ch + target.value.slice(end);
+            target.focus();
+            target.setSelectionRange(start + ch.length, start + ch.length);
+          });
+
+          kb.appendChild(btn);
+        });
+      }
+
+      /* ===================================================================
+         8. CRUD COMPLETO DE FICHAS + ACERVO + CONFIRMACAO CUSTOMIZADA
+         =================================================================== */
+
+      function populateDeckSelect() {
+        const select = document.getElementById('fieldDeck');
+        select.innerHTML = '';
+        DECKS.forEach((d) => {
+          const opt = document.createElement('option');
+          opt.value = d.id;
+          opt.textContent = `${d.code} · ${d.name}`;
+          select.appendChild(opt);
+        });
+      }
+
+      function openCardForm(cardToEdit = null) {
+        const dialog = document.getElementById('cardFormDialog');
+        const title = document.getElementById('cardFormTitle');
+
+        if (cardToEdit) {
+          title.textContent = 'Editar ficha';
+          document.getElementById('fieldCardId').value = cardToEdit.id;
+          document.getElementById('fieldDeck').value = cardToEdit.deckId;
+          document.getElementById('fieldRussian').value = cardToEdit.russianStressed || cardToEdit.russian;
+          document.getElementById('fieldTranslation').value = cardToEdit.translation;
+          document.getElementById('fieldTranslit').value = cardToEdit.translit || '';
+          document.getElementById('fieldPhoneticPt').value = cardToEdit.phoneticPt || '';
+          document.getElementById('fieldExampleRu').value = cardToEdit.exampleRuStressed || cardToEdit.exampleRu || '';
+          document.getElementById('fieldExamplePt').value = cardToEdit.examplePt || '';
+          document.getElementById('fieldGrammarNote').value = cardToEdit.grammarNote || '';
+        } else {
+          title.textContent = 'Nova ficha de estudo';
+          document.getElementById('cardForm').reset();
+          document.getElementById('fieldCardId').value = '';
+          if (activeDeckId !== 'all') {
+            document.getElementById('fieldDeck').value = activeDeckId;
+          }
+        }
+
+        lastFocusedRussianInput = document.getElementById('fieldRussian');
+        dialog.showModal();
+      }
+
+      function renderManageList(query = '') {
+        const container = document.getElementById('manageCardList');
+        container.innerHTML = '';
+        const q = normalizeRussian(query);
+
+        const filtered = state.cards.filter((c) => {
+          if (!q) return true;
+          return (
+            normalizeRussian(c.russian).includes(q) ||
+            c.translation.toLowerCase().includes(q) ||
+            (c.translit || '').toLowerCase().includes(q)
+          );
+        });
+
+        if (filtered.length === 0) {
+          const empty = document.createElement('p');
+          empty.className = 'p-6 text-center text-sm text-ink-500';
+          empty.textContent = 'Nenhuma ficha encontrada para esta busca.';
+          container.appendChild(empty);
+          return;
+        }
+
+        filtered.forEach((card) => {
+          const row = document.createElement('div');
+          row.className = 'px-4 py-3 flex flex-wrap items-center justify-between gap-3 bg-paper-50 dark:bg-ink-900 hover:bg-paper-100/80 dark:hover:bg-ink-800/50 transition';
+
+          const info = document.createElement('div');
+          info.className = 'min-w-0 flex-1';
+
+          const ruEl = document.createElement('p');
+          ruEl.lang = 'ru';
+          ruEl.className = 'font-serif font-bold text-base truncate';
+          ruEl.textContent = state.settings.showStress && card.russianStressed ? card.russianStressed : card.russian;
+
+          const ptEl = document.createElement('p');
+          ptEl.className = 'text-xs text-ink-500 dark:text-ink-400 truncate';
+          const deckName = (DECKS.find((d) => d.id === card.deckId) || {}).name || '';
+          ptEl.textContent = `${card.translation} · ${deckName}`;
+
+          info.appendChild(ruEl);
+          info.appendChild(ptEl);
+
+          const actions = document.createElement('div');
+          actions.className = 'flex items-center gap-2 font-mono text-[11px]';
+
+          const btnAudio = document.createElement('button');
+          btnAudio.type = 'button';
+          btnAudio.className = 'px-2.5 py-1 rounded border border-paper-300 dark:border-ink-700 hover:bg-paper-200 dark:hover:bg-ink-800 cursor-pointer';
+          btnAudio.textContent = 'Ouvir';
+          btnAudio.addEventListener('click', () => speakRussian(card.russian));
+
+          const btnEdit = document.createElement('button');
+          btnEdit.type = 'button';
+          btnEdit.className = 'px-2.5 py-1 rounded border border-paper-300 dark:border-ink-700 hover:bg-paper-200 dark:hover:bg-ink-800 cursor-pointer';
+          btnEdit.textContent = 'Editar';
+          btnEdit.addEventListener('click', () => {
+            document.getElementById('manageDialog').close();
+            openCardForm(card);
+          });
+
+          const btnDel = document.createElement('button');
+          btnDel.type = 'button';
+          btnDel.className = 'px-2.5 py-1 rounded text-vermilion-600 dark:text-vermilion-400 border border-vermilion-600/30 hover:bg-vermilion-600/10 cursor-pointer';
+          btnDel.textContent = 'Excluir';
+          btnDel.addEventListener('click', async () => {
+            const ok = await showConfirm('Excluir ficha', `Remover "${card.russian}" (${card.translation}) do acervo?`);
+            if (!ok) return;
+            state.cards = state.cards.filter((c) => c.id !== card.id);
+            saveState();
+            renderManageList(document.getElementById('manageSearchInput').value);
+            renderStats();
+            buildQueue(activeDeckId, freePracticeMode);
+            showToast('Ficha removida.', 'info');
+          });
+
+          actions.appendChild(btnAudio);
+          actions.appendChild(btnEdit);
+          actions.appendChild(btnDel);
+
+          row.appendChild(info);
+          row.appendChild(actions);
+          container.appendChild(row);
+        });
+      }
+
+      function showConfirm(title, message) {
+        return new Promise((resolve) => {
+          const dialog = document.getElementById('confirmDialog');
+          document.getElementById('confirmTitle').textContent = title;
+          document.getElementById('confirmMessage').textContent = message;
+
+          const btnOk = document.getElementById('btnConfirmOk');
+          const btnCancel = document.getElementById('btnConfirmCancel');
+
+          function cleanup(result) {
+            btnOk.removeEventListener('click', onOk);
+            btnCancel.removeEventListener('click', onCancel);
+            dialog.removeEventListener('cancel', onCancel);
+            dialog.close();
+            resolve(result);
+          }
+
+          const onOk = () => cleanup(true);
+          const onCancel = () => cleanup(false);
+
+          btnOk.addEventListener('click', onOk);
+          btnCancel.addEventListener('click', onCancel);
+          dialog.addEventListener('cancel', onCancel);
+          dialog.showModal();
+        });
+      }
+
+      function showToast(message, type = 'success') {
+        const container = document.getElementById('toastContainer');
+        const toast = document.createElement('div');
+        const styles = {
+          success: 'bg-ink-950 text-paper-50 dark:bg-paper-100 dark:text-ink-950 border-l-4 border-l-pine-700',
+          info: 'bg-ink-950 text-paper-50 dark:bg-paper-100 dark:text-ink-950 border-l-4 border-l-prussian-400',
+          error: 'bg-vermilion-600 text-paper-50 border-l-4 border-l-paper-50'
+        };
+        toast.className = `px-4 py-2.5 rounded-lg text-xs font-medium shadow-lg pointer-events-auto transition-all duration-300 ${styles[type] || styles.info}`;
+        toast.textContent = message;
+        container.appendChild(toast);
+
+        setTimeout(() => {
+          toast.style.opacity = '0';
+          toast.style.transform = 'translateY(6px)';
+          setTimeout(() => toast.remove(), 300);
+        }, 2800);
+      }
+
+      /* ===================================================================
+         9. TEMA (PAPEL / GRAFITE) E EVENTOS
+         =================================================================== */
+
+      function applyTheme(theme) {
+        const html = document.documentElement;
+        const isDark = theme === 'dark';
+        html.classList.toggle('dark', isDark);
+        document.getElementById('iconSun').classList.toggle('hidden', !isDark);
+        document.getElementById('iconMoon').classList.toggle('hidden', isDark);
+        document.getElementById('btnToggleTheme').setAttribute('aria-pressed', String(isDark));
+      }
+
+      function syncSettingsControls() {
+        document.getElementById('toggleStress').checked = state.settings.showStress;
+        document.getElementById('toggleTranslit').checked = state.settings.showTranslit;
+        document.getElementById('toggleAutoPlay').checked = state.settings.autoPlay;
+        document.getElementById('toggleDictation').checked = state.settings.dictationMode;
+        document.getElementById('ttsEngineSelect').value = state.settings.ttsMode || 'auto';
+        document.getElementById('rateRange').value = state.settings.speechRate;
+        document.getElementById('rateValueLabel').textContent = `${Number(state.settings.speechRate).toFixed(2)}×`;
+        applyTheme(state.settings.theme);
+      }
+
+      function bindEvents() {
+        document.querySelectorAll('[data-close-dialog]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            document.getElementById(btn.getAttribute('data-close-dialog')).close();
+          });
+        });
+
+        document.querySelectorAll('dialog').forEach((dlg) => {
+          dlg.addEventListener('click', (e) => {
+            if (e.target === dlg) dlg.close();
+          });
+        });
+
+        // Header
+        document.getElementById('btnOpenAlphabet').addEventListener('click', () => {
+          document.getElementById('alphabetDialog').showModal();
+        });
+        document.getElementById('btnOpenNewCard').addEventListener('click', () => openCardForm(null));
+        document.getElementById('btnCompleteNewCard').addEventListener('click', () => openCardForm(null));
+        document.getElementById('btnOpenManage').addEventListener('click', () => {
+          document.getElementById('manageSearchInput').value = '';
+          renderManageList('');
+          document.getElementById('manageDialog').showModal();
+        });
+        document.getElementById('btnOpenSettings').addEventListener('click', () => {
+          loadVoices();
+          document.getElementById('settingsDialog').showModal();
+        });
+
+        document.getElementById('btnToggleTheme').addEventListener('click', () => {
+          state.settings.theme = state.settings.theme === 'dark' ? 'light' : 'dark';
+          applyTheme(state.settings.theme);
+          saveState();
+        });
+
+        document.getElementById('btnDismissTtsBanner').addEventListener('click', () => {
+          document.getElementById('ttsWarningBanner').classList.add('hidden');
+        });
+
+        // Ficha
+        document.getElementById('btnFlipToBack').addEventListener('click', () => setFlipped(true));
+        document.getElementById('btnFlipToFront').addEventListener('click', () => setFlipped(false));
+        document.getElementById('btnEditCurrentCard').addEventListener('click', () => {
+          if (currentCard) openCardForm(currentCard);
+        });
+
+        // Áudio TTS
+        document.getElementById('btnSpeakNormal').addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (currentCard) speakRussian(currentCard.russian, null, e.currentTarget);
+        });
+        document.getElementById('btnSpeakSlow').addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (currentCard) speakRussian(currentCard.russian, 0.65, e.currentTarget);
+        });
+        document.getElementById('btnSpeakBackWord').addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (currentCard) speakRussian(currentCard.russian, null, e.currentTarget);
+        });
+        document.getElementById('btnSpeakExample').addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (currentCard && currentCard.exampleRu) speakRussian(currentCard.exampleRu, null, e.currentTarget);
+        });
+
+        // Ditado
+        document.getElementById('btnCheckDictation').addEventListener('click', () => {
+          if (!currentCard) return;
+          const typed = normalizeRussian(document.getElementById('dictationInput').value);
+          const expected = normalizeRussian(currentCard.russian);
+          const fb = document.getElementById('dictationFeedback');
+
+          if (!typed) {
+            fb.className = 'text-xs font-medium text-ochre-700 dark:text-ochre-400';
+            fb.textContent = 'Digite uma palavra em cirílico para conferir.';
+          } else if (typed === expected) {
+            fb.className = 'text-xs font-medium text-pine-700 dark:text-pine-400';
+            fb.textContent = 'Correto — ortografia exata.';
+          } else {
+            fb.className = 'text-xs font-medium text-vermilion-600 dark:text-vermilion-400';
+            fb.textContent = `Esperado: ${currentCard.russian}`;
+          }
+        });
+
+        // Avaliação SM-2
+        document.querySelectorAll('.rate-btn').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            rateCurrentCard(Number(btn.getAttribute('data-quality')));
+          });
+        });
+
+        document.getElementById('btnPracticeFree').addEventListener('click', () => {
+          buildQueue(activeDeckId, true);
+        });
+
+        // Toggles pedagógicos
+        document.getElementById('toggleStress').addEventListener('change', (e) => {
+          state.settings.showStress = e.target.checked;
+          saveState();
+          renderCurrentCard();
+        });
+        document.getElementById('toggleTranslit').addEventListener('change', (e) => {
+          state.settings.showTranslit = e.target.checked;
+          saveState();
+          renderCurrentCard();
+        });
+        document.getElementById('toggleAutoPlay').addEventListener('change', (e) => {
+          state.settings.autoPlay = e.target.checked;
+          saveState();
+        });
+        document.getElementById('toggleDictation').addEventListener('change', (e) => {
+          state.settings.dictationMode = e.target.checked;
+          saveState();
+          renderCurrentCard();
+        });
+
+        // Teclado virtual e formulário
+        ['fieldRussian', 'fieldExampleRu'].forEach((id) => {
+          document.getElementById(id).addEventListener('focus', (e) => {
+            lastFocusedRussianInput = e.target;
+          });
+        });
+
+        document.getElementById('btnTestFormTts').addEventListener('click', () => {
+          const val = document.getElementById('fieldRussian').value;
+          if (!val.trim()) {
+            showToast('Digite uma palavra em russo antes de testar.', 'info');
+            return;
+          }
+          speakRussian(val);
+        });
+
+        document.getElementById('cardForm').addEventListener('submit', (e) => {
+          e.preventDefault();
+          const id = document.getElementById('fieldCardId').value;
+          const deckId = document.getElementById('fieldDeck').value;
+          const rawRussian = document.getElementById('fieldRussian').value.trim();
+          const translation = document.getElementById('fieldTranslation').value.trim();
+          const translit = document.getElementById('fieldTranslit').value.trim();
+          const phoneticPt = document.getElementById('fieldPhoneticPt').value.trim();
+          const rawExampleRu = document.getElementById('fieldExampleRu').value.trim();
+          const examplePt = document.getElementById('fieldExamplePt').value.trim();
+          const grammarNote = document.getElementById('fieldGrammarNote').value.trim();
+
+          if (!rawRussian || !translation) return;
+
+          const russianClean = stripStressMarks(rawRussian);
+          const exampleClean = stripStressMarks(rawExampleRu);
+
+          if (id) {
+            const card = state.cards.find((c) => c.id === id);
+            if (card) {
+              card.deckId = deckId;
+              card.russian = russianClean;
+              card.russianStressed = rawRussian;
+              card.translation = translation;
+              card.translit = translit;
+              card.phoneticPt = phoneticPt;
+              card.exampleRu = exampleClean;
+              card.exampleRuStressed = rawExampleRu;
+              card.examplePt = examplePt;
+              card.grammarNote = grammarNote;
+            }
+            showToast('Ficha atualizada.');
+          } else {
+            state.cards.unshift({
+              id: 'c_' + Date.now(),
+              deckId,
+              russian: russianClean,
+              russianStressed: rawRussian,
+              translit,
+              phoneticPt,
+              translation,
+              exampleRu: exampleClean,
+              exampleRuStressed: rawExampleRu,
+              examplePt,
+              grammarNote,
+              repetitions: 0,
+              interval: 0,
+              easeFactor: 2.5,
+              dueDate: Date.now(),
+              lapses: 0
+            });
+            showToast(`Ficha "${russianClean}" adicionada.`);
+          }
+
+          saveState();
+          document.getElementById('cardFormDialog').close();
+          renderStats();
+          buildQueue(activeDeckId, false);
+        });
+
+        // Acervo
+        document.getElementById('manageSearchInput').addEventListener('input', (e) => {
+          renderManageList(e.target.value);
+        });
+        document.getElementById('btnManageAddCard').addEventListener('click', () => {
+          document.getElementById('manageDialog').close();
+          openCardForm(null);
+        });
+
+        // Configurações de Voz e Backup
+        document.getElementById('ttsEngineSelect').addEventListener('change', (e) => {
+          state.settings.ttsMode = e.target.value;
+          saveState();
+          updateTtsStatusUI();
+          showToast('Motor de áudio atualizado.', 'info');
+        });
+        document.getElementById('voiceSelect').addEventListener('change', (e) => {
+          state.settings.preferredVoiceURI = e.target.value;
+          saveState();
+          updateTtsStatusUI();
+        });
+        document.getElementById('btnTestSelectedVoice').addEventListener('click', () => {
+          speakRussian('Привет! Добро пожаловать в СловоФлоу.');
+        });
+        document.getElementById('rateRange').addEventListener('input', (e) => {
+          const val = parseFloat(e.target.value);
+          state.settings.speechRate = val;
+          document.getElementById('rateValueLabel').textContent = `${val.toFixed(2)}×`;
+          saveState();
+        });
+
+        document.getElementById('btnExportJson').addEventListener('click', () => {
+          const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `slovoflow-backup-${getTodayKey()}.json`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+          showToast('Backup JSON exportado.');
+        });
+
+        document.getElementById('inputImportJson').addEventListener('change', (e) => {
+          const file = e.target.files && e.target.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = () => {
+            try {
+              const imported = JSON.parse(String(reader.result));
+              if (!imported || !Array.isArray(imported.cards)) throw new Error('Inválido');
+              state = imported;
+              saveState();
+              syncSettingsControls();
+              renderStats();
+              buildQueue('all', false);
+              document.getElementById('settingsDialog').close();
+              showToast('Backup importado.');
+            } catch (err) {
+              showToast('Arquivo JSON inválido ou corrompido.', 'error');
+            }
+          };
+          reader.readAsText(file);
+          e.target.value = '';
+        });
+
+        document.getElementById('btnResetDemo').addEventListener('click', async () => {
+          const ok = await showConfirm(
+            'Restaurar estado inicial',
+            'As 24 fichas iniciais serão restauradas e todo o progresso de revisões será zerado. Continuar?'
+          );
+          if (!ok) return;
+          state = createDefaultState();
+          saveState();
+          syncSettingsControls();
+          renderStats();
+          buildQueue('all', false);
+          document.getElementById('settingsDialog').close();
+          showToast('Dados restaurados.');
+        });
+
+        // Atalhos de Teclado Globais
+        document.addEventListener('keydown', (e) => {
+          const tag = document.activeElement ? document.activeElement.tagName : '';
+          if (['INPUT', 'TEXTAREA', 'SELECT'].includes(tag)) return;
+          if (document.querySelector('dialog[open]')) return;
+          if (!currentCard) return;
+
+          if (e.code === 'Space' || e.code === 'Enter') {
+            e.preventDefault();
+            setFlipped(!isFlipped);
+          } else if (isFlipped && ['1', '2', '3', '4'].includes(e.key)) {
+            e.preventDefault();
+            rateCurrentCard(Number(e.key));
+          } else if (e.key.toLowerCase() === 'r') {
+            e.preventDefault();
+            speakRussian(currentCard.russian, null, document.getElementById('btnSpeakNormal'));
+          } else if (e.key.toLowerCase() === 's') {
+            e.preventDefault();
+            speakRussian(currentCard.russian, 0.65, document.getElementById('btnSpeakSlow'));
+          } else if (isFlipped && e.key.toLowerCase() === 'e' && currentCard.exampleRu) {
+            e.preventDefault();
+            speakRussian(currentCard.exampleRu, null, document.getElementById('btnSpeakExample'));
+          }
+        });
+      }
+
+      /* ===================================================================
+         10. INICIALIZACAO
+         =================================================================== */
+
+      function init() {
+        populateDeckSelect();
+        renderAlphabetGrid();
+        renderVirtualKeyboard();
+        syncSettingsControls();
+        renderStats();
+        bindEvents();
+
+        loadVoices();
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.onvoiceschanged = loadVoices;
+        }
+
+        buildQueue('all', false);
+      }
+
+      document.addEventListener('DOMContentLoaded', init);
+    })();
+  </script>
+</body>
+</html>
